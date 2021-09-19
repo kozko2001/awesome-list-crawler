@@ -1,6 +1,9 @@
 import logging
 from dataclasses import dataclass
 from datetime import datetime
+from multiprocessing import Pool
+
+import tqdm
 
 from awesome_crawler.awesome_repo import process_awesome_repo
 from awesome_crawler.extractor import ExtractInfo
@@ -33,4 +36,7 @@ def crawl_repository(awesomeList: AwesomeList):
 
 
 def crawl_awesome(awesomeLists: list[AwesomeList]):
-    return list(map(crawl_repository, awesomeLists))
+    with Pool(8) as p:
+        return list(
+            tqdm.tqdm(p.imap(crawl_repository, awesomeLists), total=len(awesomeLists))
+        )
