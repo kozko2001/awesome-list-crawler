@@ -25,6 +25,8 @@ FROM base AS runtime
 COPY --from=python-deps /.venv /.venv
 ENV PATH="/.venv/bin:$PATH"
 
+RUN apt-get update && apt-get install -y --no-install-recommends git 
+
 # Create and switch to a new user
 RUN useradd --create-home appuser
 WORKDIR /home/appuser

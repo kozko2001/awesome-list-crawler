@@ -12,8 +12,11 @@ mistune = "==2.0.0rc1"
 gitpython = "*"
 tqdm = "*"
 "aws-cdk.core" = "==1.123.0"
-"aws-cdk.aws-ecr" = "*"
-"aws-cdk.aws-iam" = "*"
+"aws-cdk.aws-ecr" = "==1.123.0"
+"aws-cdk.aws-iam" = "==1.123.0"
+"aws-cdk.aws-lambda" = "==1.123.0"
+"aws-cdk.aws-events" = "==1.123.0"
+"aws-cdk.aws-events-targets" = "==1.123.0"
 
 [dev-packages]
 black = "==20.8b1"
