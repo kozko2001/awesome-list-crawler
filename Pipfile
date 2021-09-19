@@ -20,6 +20,9 @@ tqdm = "*"
 "aws-cdk.aws-s3" = "*"
 "aws-cdk.aws-route53" = "*"
 boto3 = "*"
+"aws-cdk.aws-ecs" = "*"
+"aws-cdk.aws-ecs-patterns" = "*"
+"aws-cdk.aws-applicationautoscaling" = "*"
 
 [dev-packages]
 black = "==20.8b1"

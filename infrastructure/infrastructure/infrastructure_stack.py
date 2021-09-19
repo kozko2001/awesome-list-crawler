@@ -1,8 +1,8 @@
+import aws_cdk.aws_applicationautoscaling as aws_applicationautoscaling
 import aws_cdk.aws_ecr as ecr
-import aws_cdk.aws_events as events
-import aws_cdk.aws_events_targets as events_targets
+import aws_cdk.aws_ecs as ecs
+import aws_cdk.aws_ecs_patterns as ecs_patterns
 import aws_cdk.aws_iam as iam
-import aws_cdk.aws_lambda as aws_lamba
 import aws_cdk.aws_route53 as r53
 import aws_cdk.aws_s3 as s3
 from aws_cdk import core as cdk
@@ -63,40 +63,26 @@ class InfrastructureStack(cdk.Stack):
             domain_name=bucket.bucket_website_domain_name,
         )
 
-        func = aws_lamba.DockerImageFunction(
-            self,
-            "AWESOME_CRAWELER_DAILY",
-            code=aws_lamba.DockerImageCode.from_ecr(repository),
-        )
-
-        eventRule = events.Rule(
-            self,
-            "awesome_craweler_daily",
-            schedule=events.Schedule.cron(minute="0", hour="1"),
-        )
-
-        eventRule.add_target(events_targets.LambdaFunction(func))
-
         s3ListBucketsPolicy = iam.PolicyStatement(
             actions=["s3:PutObject", "s3:GetObject", "s3:DeleteObject"],
             effect=iam.Effect.ALLOW,
             resources=[bucket.arn_for_objects("*")],
         )
 
-        role = func.role
-        if role:
-            role.attach_inline_policy(
-                iam.Policy(self, "rw s3 policy", statements=[s3ListBucketsPolicy])
-            )
+        cluster = ecs.Cluster(self, "AwesomeCrawler")
 
-        update_lambda = iam.PolicyStatement(
-            actions=[
-                "iam:ListRoles",
-                "lambda:UpdateFunctionCode",
-                "lambda:CreateFunction",
-                "lambda:UpdateFunctionConfiguration",
-            ],
-            effect=iam.Effect.ALLOW,
-            resources=[func.function_arn],
+        scheduled_fargate_task = ecs_patterns.ScheduledFargateTask(
+            self,
+            "ScheduledFargateTask",
+            cluster=cluster,
+            scheduled_fargate_task_image_options=ecs_patterns.ScheduledFargateTaskImageOptions(
+                image=ecs.ContainerImage.from_ecr_repository(repository),
+                memory_limit_mib=512,
+            ),
+            schedule=aws_applicationautoscaling.Schedule.cron(minute="0", hour="1"),
+            platform_version=ecs.FargatePlatformVersion.LATEST,
         )
-        user.add_to_policy(update_lambda)
+
+        scheduled_fargate_task.task_definition.add_to_task_role_policy(
+            s3ListBucketsPolicy
+        )
