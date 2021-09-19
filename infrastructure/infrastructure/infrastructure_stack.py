@@ -75,3 +75,15 @@ class InfrastructureStack(cdk.Stack):
         )
 
         eventRule.add_target(events_targets.LambdaFunction(func))
+
+        s3ListBucketsPolicy = iam.PolicyStatement(
+            actions=["s3:PutObject", "s3:GetObject", "s3:DeleteObject"],
+            effect=iam.Effect.ALLOW,
+            resources=[bucket.arn_for_objects("*")],
+        )
+
+        role = func.role
+        if role:
+            role.attach_inline_policy(
+                iam.Policy(self, "rw s3 policy", statements=[s3ListBucketsPolicy])
+            )

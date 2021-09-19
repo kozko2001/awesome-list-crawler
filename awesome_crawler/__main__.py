@@ -12,7 +12,7 @@ if __name__ == "__main__":
     list_of_awesome_projects = [
         AwesomeList(p.item.name, p.item.source, p.item.description)
         for p in process_awesome_repo("https://github.com/sindresorhus/awesome", 1)
-    ]
+    ][0:3]
 
     items = crawl_awesome(list_of_awesome_projects)
     items_flatten = [x for i in items for x in i]
