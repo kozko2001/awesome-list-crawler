@@ -41,3 +41,4 @@ jobs:
         aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws_region: eu-west-1
         image_uri: 097742747651.dkr.ecr.eu-west-1.amazonaws.com/infrastructurestack-awesomecrawlera8c56137-cmdt4ret0po9
+        function_name: InfrastructureStack-AWESOMECRAWELERDAILY0A3F4A2B-QqBjCvrs1wmd

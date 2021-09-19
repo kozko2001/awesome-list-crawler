@@ -14,6 +14,7 @@ class InfrastructureStack(cdk.Stack):
 
         repository = ecr.Repository(self, "awesome-crawler")
         user = iam.User(self, "AWESOME_CRAWLER_GITHUB_ACTIONS_PUSH_ECR")
+
         ecr.AuthorizationToken.grant_read(user)
 
         repository.add_lifecycle_rule(max_image_count=5)
@@ -87,3 +88,15 @@ class InfrastructureStack(cdk.Stack):
             role.attach_inline_policy(
                 iam.Policy(self, "rw s3 policy", statements=[s3ListBucketsPolicy])
             )
+
+        update_lambda = iam.PolicyStatement(
+            actions=[
+                "iam:ListRoles",
+                "lambda:UpdateFunctionCode",
+                "lambda:CreateFunction",
+                "lambda:UpdateFunctionConfiguration",
+            ],
+            effect=iam.Effect.ALLOW,
+            resources=[func.function_arn],
+        )
+        user.add_to_policy(update_lambda)
