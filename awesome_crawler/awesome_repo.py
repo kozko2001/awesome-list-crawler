@@ -1,8 +1,8 @@
 import io
 import logging
 import shutil
-import time
 from dataclasses import dataclass
+from datetime import datetime
 from itertools import groupby
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class AwesomeItemTime:
     item: ExtractInfo
-    time: time.struct_time
+    time: datetime
 
 
 def clone(url: str, dest: Path):
@@ -42,7 +42,9 @@ def extract_all_commits(url: str, dest: Path, limit=None):
                 items = extract(markdown)
 
                 for item in items:
-                    yield AwesomeItemTime(item, time.gmtime(commit.committed_date))
+                    yield AwesomeItemTime(
+                        item, datetime.fromtimestamp(commit.committed_date)
+                    )
 
 
 def find_readme_file(commit):
@@ -66,7 +68,7 @@ def get_first_date(items: list[AwesomeItemTime]) -> Iterable[AwesomeItemTime]:
         yield AwesomeItemTime(g[-1].item, g[0].time)
 
 
-def process_awesome_repo(url: str, limit: int = None):
+def process_awesome_repo(url: str, limit: int = None) -> Iterable[AwesomeItemTime]:
     with TemporaryDirectory() as temp:
         dest = Path(temp)
         x = list(extract_all_commits(url, dest, limit))

@@ -1,4 +1,9 @@
-from awesome_crawler.extractor import extract
+import json
+from datetime import datetime
+
+from awesome_crawler.extractor import ExtractInfo, extract
+from awesome_crawler.output import generate_json_str
+from awesome_crawler.process import AwesomeItem, AwesomeList
 
 
 def test_extract() -> None:
@@ -12,6 +17,61 @@ def test_extract() -> None:
     assert deepfake.name == "DeepfakeHTTP"
     assert deepfake.source == "https://github.com/xnbox/DeepfakeHTTP"
     assert "DeepfakeHTTP is a web server" in deepfake.description
+
+
+def test_output():
+    items = [
+        AwesomeItem(
+            ExtractInfo("ITEM1", "http://item1.com", "", None),
+            AwesomeList("LIST1", "http://list1.com", ""),
+            datetime.strptime("26 Sep 2020", r"%d %b %Y"),
+        ),
+        AwesomeItem(
+            ExtractInfo("ITEM2", "http://item2.com", "", None),
+            AwesomeList("LIST1", "http://list1.com", ""),
+            datetime.strptime("26 Sep 2020", r"%d %b %Y"),
+        ),
+        AwesomeItem(
+            ExtractInfo("ITEM3", "http://item3.com", "", None),
+            AwesomeList("LIST1", "http://list1.com", ""),
+            datetime.strptime("26 Sep 2020", r"%d %b %Y"),
+        ),
+    ]
+
+    actual_str = generate_json_str(items)
+    actual_json = json.loads(actual_str)
+
+    expect = {
+        "lists": [
+            {
+                "name": "LIST1",
+                "source": "http://list1.com",
+                "description": "",
+                "items": [
+                    {
+                        "name": "ITEM1",
+                        "source": "http://item1.com",
+                        "description": "",
+                        "time": "2020-09-26T00:00:00",
+                    },
+                    {
+                        "name": "ITEM2",
+                        "source": "http://item2.com",
+                        "description": "",
+                        "time": "2020-09-26T00:00:00",
+                    },
+                    {
+                        "name": "ITEM3",
+                        "source": "http://item3.com",
+                        "description": "",
+                        "time": "2020-09-26T00:00:00",
+                    },
+                ],
+            }
+        ]
+    }
+
+    assert actual_json == expect
 
 
 def exampleMarkdown() -> str:
