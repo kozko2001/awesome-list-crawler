@@ -1,7 +1,10 @@
+import logging
 from dataclasses import dataclass
 from typing import Mapping, Optional
 
 import mistune
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -31,10 +34,17 @@ def find_list_items(ast):
 def map_list_item(list_item) -> Optional[ExtractInfo]:
     list_item = [list_item]
     block_text = find_type_single(list_item, "block_text")
+    if block_text is None:
+        logger.warn(f"no block_text found... ignoring this item {list_item}")
+        return None
+
     if "children" not in block_text:
         return None
 
     link_token = find_type_single(get_children(block_text), "link")
+    if link_token is None:
+        logger.warn(f"no link found... ignoring this item {list_item}")
+        return None
 
     name = get_text([link_token])
     link: str = link_token["link"]
@@ -51,7 +61,7 @@ def flat(ast):
     while queue:
         item = queue.pop()
 
-        if "children" in item:
+        if "children" in item and type(item["children"]) is list:
             queue = queue + item["children"]
 
         yield item

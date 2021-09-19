@@ -1,4 +1,5 @@
 import io
+import logging
 import shutil
 import time
 from dataclasses import dataclass
@@ -8,9 +9,10 @@ from tempfile import TemporaryDirectory
 from typing import Iterable
 
 import git
-from git.repo.base import Repo
 
 from awesome_crawler.extractor import ExtractInfo, extract
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -26,18 +28,31 @@ def clone(url: str, dest: Path):
     return git.Repo.clone_from(url, dest)
 
 
-def extract_all_commits(repo: Repo):
-
-    commits = list(repo.iter_commits("master"))
+def extract_all_commits(url: str, dest: Path, limit=None):
+    repo = clone(url, dest)
+    commits = list(repo.iter_commits(max_count=limit))
 
     for commit in commits:
-        targetfile = commit.tree / "README.md"
-        with io.BytesIO(targetfile.data_stream.read()) as f:
-            markdown = f.read().decode("utf-8")
-            items = extract(markdown)
+        readme_filename = find_readme_file(commit)
 
-            for item in items:
-                yield AwesomeItemTime(item, time.gmtime(commit.committed_date))
+        if readme_filename:
+            targetfile = commit.tree / readme_filename
+            with io.BytesIO(targetfile.data_stream.read()) as f:
+                markdown = f.read().decode("utf-8")
+                items = extract(markdown)
+
+                for item in items:
+                    yield AwesomeItemTime(item, time.gmtime(commit.committed_date))
+
+
+def find_readme_file(commit):
+    filenames = [p.path for p in commit.tree.traverse()]
+
+    readmes = [f for f in filenames if "readme" in f.lower()]
+    if readmes:
+        return readmes[0]
+    else:
+        return None
 
 
 def get_first_date(items: list[AwesomeItemTime]) -> Iterable[AwesomeItemTime]:
@@ -51,9 +66,8 @@ def get_first_date(items: list[AwesomeItemTime]) -> Iterable[AwesomeItemTime]:
         yield AwesomeItemTime(g[-1].item, g[0].time)
 
 
-def process_awesome_repo(url: str):
+def process_awesome_repo(url: str, limit: int = None):
     with TemporaryDirectory() as temp:
         dest = Path(temp)
-        repo = clone(url, dest)
-        x = list(extract_all_commits(repo))
+        x = list(extract_all_commits(url, dest, limit))
         return get_first_date(x)
