@@ -35,8 +35,7 @@ def map_list_item(list_item) -> Optional[ExtractInfo]:
     list_item = [list_item]
     block_text = find_type_single(list_item, "block_text")
     if block_text is None:
-        logger.warn(f"no block_text found... ignoring this item {list_item}")
-        return None
+        block_text = list_item[0]
 
     if "children" not in block_text:
         return None
