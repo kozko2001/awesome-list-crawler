@@ -1,5 +1,8 @@
 import aws_cdk.aws_ecr as ecr
+import aws_cdk.aws_events as events
+import aws_cdk.aws_events_targets as events_targets
 import aws_cdk.aws_iam as iam
+import aws_cdk.aws_lambda as aws_lamba
 from aws_cdk import core as cdk
 
 
@@ -37,3 +40,17 @@ class InfrastructureStack(cdk.Stack):
                 principals=[user],
             )
         )
+
+        func = aws_lamba.DockerImageFunction(
+            self,
+            "AWESOME_CRAWELER_DAILY",
+            code=aws_lamba.DockerImageCode.from_ecr(repository),
+        )
+
+        eventRule = events.Rule(
+            self,
+            "awesome_craweler_daily",
+            schedule=events.Schedule.cron(minute="0", hour="1"),
+        )
+
+        eventRule.add_target(events_targets.LambdaFunction(func))
