@@ -1,4 +1,4 @@
-from awesome_crawler.awesome_crawler import extract
+from awesome_crawler.extractor import extract
 
 
 def test_extract() -> None:

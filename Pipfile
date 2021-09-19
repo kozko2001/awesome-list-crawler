@@ -9,6 +9,7 @@ python_version = "3.9"
 [packages]
 click = "*"
 mistune = "==2.0.0rc1"
+gitpython = "*"
 
 [dev-packages]
 black = "==20.8b1"
