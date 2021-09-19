@@ -6,7 +6,8 @@ from awesome_crawler.output import generate_json
 from awesome_crawler.process import AwesomeList, crawl_awesome
 
 if __name__ == "__main__":
-    logging.basicConfig(filename="crawler.log", level=logging.INFO)
+    # logging.basicConfig(filename="crawler.log", level=logging.INFO)
+    logging.basicConfig(level=logging.ERROR)
 
     list_of_awesome_projects = [
         AwesomeList(p.item.name, p.item.source, p.item.description)

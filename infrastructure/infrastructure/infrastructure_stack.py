@@ -3,6 +3,8 @@ import aws_cdk.aws_events as events
 import aws_cdk.aws_events_targets as events_targets
 import aws_cdk.aws_iam as iam
 import aws_cdk.aws_lambda as aws_lamba
+import aws_cdk.aws_route53 as r53
+import aws_cdk.aws_s3 as s3
 from aws_cdk import core as cdk
 
 
@@ -39,6 +41,25 @@ class InfrastructureStack(cdk.Stack):
                 ],
                 principals=[user],
             )
+        )
+
+        bucket = s3.Bucket(
+            self,
+            "awesome-crawler-bucket",
+            bucket_name="awesome-crawler.allocsoc.net",
+            public_read_access=True,
+            removal_policy=cdk.RemovalPolicy.DESTROY,
+            website_index_document="index.html",
+        )
+
+        zone = r53.HostedZone.from_lookup(self, "baseZone", domain_name="allocsoc.net")
+
+        r53.CnameRecord(
+            self,
+            "test.baseZone",
+            zone=zone,
+            record_name="awesome-crawler",
+            domain_name=bucket.bucket_website_domain_name,
         )
 
         func = aws_lamba.DockerImageFunction(

@@ -17,6 +17,9 @@ tqdm = "*"
 "aws-cdk.aws-lambda" = "==1.123.0"
 "aws-cdk.aws-events" = "==1.123.0"
 "aws-cdk.aws-events-targets" = "==1.123.0"
+"aws-cdk.aws-s3" = "*"
+"aws-cdk.aws-route53" = "*"
+boto3 = "*"
 
 [dev-packages]
 black = "==20.8b1"

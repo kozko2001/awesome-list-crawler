@@ -3,6 +3,8 @@ import json
 from itertools import groupby
 from pathlib import Path
 
+import boto3
+
 from awesome_crawler.process import AwesomeItem, AwesomeList
 
 
@@ -56,5 +58,8 @@ def generate_json_str(awesomeItems: list[AwesomeItem]) -> str:
 
 
 def generate_json(awesomeItems: list[AwesomeItem], dest: Path):
-    with open(dest, "w") as f:
-        f.write(generate_json_str(awesomeItems))
+    content = generate_json_str(awesomeItems)
+    client = boto3.client("s3")
+    client.put_object(
+        Body=content, Bucket="awesome-crawler.allocsoc.net", Key="data.json"
+    )
