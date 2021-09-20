@@ -27,7 +27,7 @@ class AwesomeItem:
 
 def crawl_repository(awesomeList: AwesomeList):
     try:
-        items = process_awesome_repo(awesomeList.source.split("#")[0], limit=1)
+        items = process_awesome_repo(awesomeList.source.split("#")[0], limit=10)
         logger.info(f"succesful processed repo {awesomeList}")
         return [AwesomeItem(item.item, awesomeList, item.time) for item in items]
     except Exception:
