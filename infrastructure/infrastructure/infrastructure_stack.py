@@ -91,7 +91,7 @@ class InfrastructureStack(cdk.Stack):
                 image=ecs.ContainerImage.from_ecr_repository(repository),
                 memory_limit_mib=512,
             ),
-            schedule=aws_applicationautoscaling.Schedule.cron(minute="0", hour="1"),
+            schedule=aws_applicationautoscaling.Schedule.rate(cdk.Duration.hours(3)),
             platform_version=ecs.FargatePlatformVersion.LATEST,
         )
 
