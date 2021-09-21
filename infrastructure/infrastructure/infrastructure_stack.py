@@ -51,6 +51,18 @@ class InfrastructureStack(cdk.Stack):
             public_read_access=True,
             removal_policy=cdk.RemovalPolicy.DESTROY,
             website_index_document="index.html",
+            cors=[
+                s3.CorsRule(
+                    allowed_methods=[
+                        s3.HttpMethods.GET,
+                    ],
+                    allowed_origins=[
+                        "http://localhost:3000",
+                        "https://awesome-crawler.allocsoc.net",
+                    ],
+                    allowed_headers=["*"],
+                )
+            ],
         )
 
         zone = r53.HostedZone.from_lookup(self, "baseZone", domain_name="allocsoc.net")
