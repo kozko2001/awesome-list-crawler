@@ -2,6 +2,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 from multiprocessing import Pool
+from typing import Optional
 
 import tqdm
 
@@ -25,9 +26,18 @@ class AwesomeItem:
     time: datetime
 
 
-def crawl_repository(awesomeList: AwesomeList):
+@dataclass
+class CrawlerArgument:
+    list: AwesomeList
+    limit: Optional[int]
+
+
+def crawl_repository(argument: CrawlerArgument):
+    awesomeList = argument.list
     try:
-        items = process_awesome_repo(awesomeList.source.split("#")[0], limit=10)
+        items = process_awesome_repo(
+            awesomeList.source.split("#")[0], limit=argument.limit
+        )
         logger.info(f"succesful processed repo {awesomeList}")
         return [AwesomeItem(item.item, awesomeList, item.time) for item in items]
     except Exception:
@@ -35,8 +45,9 @@ def crawl_repository(awesomeList: AwesomeList):
         return []
 
 
-def crawl_awesome(awesomeLists: list[AwesomeList]):
+def crawl_awesome(awesomeLists: list[AwesomeList], limit: Optional[int] = None):
+    arguments = [CrawlerArgument(list, limit) for list in awesomeLists]
     with Pool(8) as p:
         return list(
-            tqdm.tqdm(p.imap(crawl_repository, awesomeLists), total=len(awesomeLists))
+            tqdm.tqdm(p.imap(crawl_repository, arguments), total=len(awesomeLists))
         )

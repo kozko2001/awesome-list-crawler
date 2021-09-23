@@ -29,13 +29,25 @@ def generate_json_str(awesomeItems: list[AwesomeItem]) -> str:
     return serialize(Output(lists))
 
 
-def generate_json(awesomeItems: list[AwesomeItem], dest: Path):
+def write_to_s3(content: str):
+    client = boto3.client("s3")
+    client.put_object(
+        Body=content, Bucket="awesome-crawler.allocsoc.net", Key="data.json"
+    )
+
+
+def write_to_file(content: str, dest: Path):
+    with dest.open("w") as f:
+        f.write(content)
+
+
+def generate_json(awesomeItems: list[AwesomeItem], dest: Path = None):
     content = generate_json_str(awesomeItems)
 
     added_new = delta(content)
     content = serialize(added_new)
 
-    client = boto3.client("s3")
-    client.put_object(
-        Body=content, Bucket="awesome-crawler.allocsoc.net", Key="data.json"
-    )
+    if not dest:
+        write_to_s3(content)
+    else:
+        write_to_file(content, dest)

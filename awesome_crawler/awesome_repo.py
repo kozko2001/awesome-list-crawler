@@ -25,7 +25,8 @@ def clone(url: str, dest: Path):
     if dest.exists():
         shutil.rmtree(dest)
 
-    return git.Repo.clone_from(url, dest)
+    env = {"GIT_TERMINAL_PROMPT": "0"}
+    return git.Repo.clone_from(url, dest, env=env)
 
 
 def extract_all_commits(url: str, dest: Path, limit=None):
