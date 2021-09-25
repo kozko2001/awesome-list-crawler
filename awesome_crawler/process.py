@@ -38,7 +38,7 @@ def crawl_repository(argument: CrawlerArgument):
         items = process_awesome_repo(
             awesomeList.source.split("#")[0], limit=argument.limit
         )
-        logger.info(f"succesful processed repo {awesomeList}")
+        logger.error(f"succesful processed repo {awesomeList}")
         return [AwesomeItem(item.item, awesomeList, item.time) for item in items]
     except Exception:
         logger.exception(f"failed to process repo {awesomeList}")
