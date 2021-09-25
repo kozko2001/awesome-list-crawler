@@ -4,6 +4,7 @@ import aws_cdk.aws_ecs as ecs
 import aws_cdk.aws_ecs_patterns as ecs_patterns
 import aws_cdk.aws_iam as iam
 import aws_cdk.aws_route53 as r53
+import aws_cdk.aws_ec2 as ec2
 import aws_cdk.aws_s3 as s3
 from aws_cdk import core as cdk
 
@@ -81,7 +82,10 @@ class InfrastructureStack(cdk.Stack):
             resources=[bucket.arn_for_objects("*")],
         )
 
-        cluster = ecs.Cluster(self, "AwesomeCrawler")
+        public_subnet = ec2.SubnetConfiguration(name="PUBLIC", cidr_mask=24, subnet_type=ec2.SubnetType.PUBLIC)
+        vpc = ec2.Vpc(self, "VPC AWESOME CRAWLER", cidr="10.40.0.0/16", max_azs=1, nat_gateways=0, subnet_configuration=[public_subnet])
+
+        cluster = ecs.Cluster(self, "AwesomeCrawler", vpc=vpc)
 
         scheduled_fargate_task = ecs_patterns.ScheduledFargateTask(
             self,
@@ -93,6 +97,8 @@ class InfrastructureStack(cdk.Stack):
             ),
             schedule=aws_applicationautoscaling.Schedule.rate(cdk.Duration.hours(12)),
             platform_version=ecs.FargatePlatformVersion.LATEST,
+            vpc=vpc,
+            subnet_selection=ec2.SubnetSelection(subnet_type= ec2.SubnetType.PUBLIC)
         )
 
         scheduled_fargate_task.task_definition.add_to_task_role_policy(
