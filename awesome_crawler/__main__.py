@@ -3,9 +3,9 @@ from pathlib import Path
 
 import click
 
-from awesome_crawler.awesome_repo import process_awesome_repo
+from awesome_crawler.find_awesome_repos import find_repos
 from awesome_crawler.output import generate_json
-from awesome_crawler.process import AwesomeList, crawl_awesome
+from awesome_crawler.process import crawl_awesome
 
 
 @click.command()
@@ -19,12 +19,7 @@ def main(all: bool, logs: bool, write_s3: bool):
     else:
         logging.basicConfig(level=logging.ERROR)
 
-    list_of_awesome_projects = [
-        AwesomeList(p.item.name, p.item.source, p.item.description)
-        for p in process_awesome_repo("https://github.com/sindresorhus/awesome", 1)
-    ]
-    # list_of_awesome_projects = [AwesomeList("AWESOME TEST", "https://github.com/AppImage/awesome-appimage", "app-image") ]
-
+    list_of_awesome_projects = find_repos()
     limit_commits = None if all else 10
     items = crawl_awesome(list_of_awesome_projects, limit_commits)
     items_flatten = [x for i in items for x in i]

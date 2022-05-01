@@ -39,4 +39,10 @@ def delta(new_data: str, old_data: Optional[str] = None) -> Output:
         old_list.items = old_list.items + to_append
         lists.append(old_list)
 
+    for new_list in new.lists:
+        old_list = find_list(lists, new_list.name)
+
+        if not old_list:
+            lists.append(new_list)
+
     return Output(lists)

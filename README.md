@@ -17,5 +17,10 @@ pipenv run pre-commit install -t pre-push
 3. go to the `infrastructure` folder
 4. execute `cdk deploy`
 
+## Next steps
+- Create two jsons (one for the first 4 days)
+- Create a sqlite with text search format
+- Add API to search / get 
+
 ## Credits
 This package was created with Cookiecutter and the [sourcery-ai/python-best-practices-cookiecutter](https://github.com/sourcery-ai/python-best-practices-cookiecutter) project template.
