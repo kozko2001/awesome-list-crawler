@@ -80,7 +80,7 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 const useData = () => {
   const { data, error } = useSWR(
-    "http://awesome-crawler.allocsoc.net/data.json",
+    "https://awesome-crawler.allocsoc.net/data.json",
     fetcher
   );
 
@@ -93,7 +93,7 @@ const useData = () => {
 
 const useRandomData = () => {
   const { data, error } = useSWR(
-    "http://awesome-crawler.allocsoc.net/data.json",
+    "https://awesome-crawler.allocsoc.net/data.json",
     fetcher
   );
 
