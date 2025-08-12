@@ -125,3 +125,32 @@ jobs:
             git commit -m "Update awesome-crawler image to ${{ github.sha }}"
             git push
           fi
+
+  update-web-manifests:
+    needs: docker-web-image
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update web image in deployment
+        run: |
+          NEW_IMAGE=harbor.allocsoc.net/awesome-crawler/awesome-web:${{ github.sha }}
+          sed -i "s|image: harbor.allocsoc.net/awesome-crawler/awesome-web:.*|image: ${NEW_IMAGE}|" k8s/awesome-web.yaml
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add k8s/awesome-web.yaml
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update awesome-web image to ${{ github.sha }}"
+            git push
+          fi
