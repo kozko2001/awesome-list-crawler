@@ -7,8 +7,7 @@ import LoadingComponent from "../components/LoadingComponent";
 import Pagination from "../components/Pagination";
 import { useHistory, useLocation } from "react-router-dom";
 
-const DEFAULT_INCREMENT = 2;
-const MAX_ITEMS_PER_PAGE = 100;
+const INCREMENT = 2;
 
 function useQuery() {
   return new URLSearchParams(useLocation().search);
@@ -22,35 +21,7 @@ function ChonologicalPage() {
 
   const { data } = useData(search);
   const pageStart = parseInt(page || "0");
-  
-  // Calculate dynamic increment: either 2 days or enough days for up to 100 items
-  const calculateIncrement = () => {
-    if (data.timeline.length === 0) return DEFAULT_INCREMENT;
-    
-    let totalItems = 0;
-    let daysToShow = 0;
-    
-    for (let i = pageStart; i < data.timeline.length; i++) {
-      totalItems += data.timeline[i].items.length;
-      daysToShow++;
-      
-      // If we've reached 2 days and have enough items, use that
-      if (daysToShow >= DEFAULT_INCREMENT && totalItems >= MAX_ITEMS_PER_PAGE) {
-        break;
-      }
-      
-      // If we've hit the item limit, stop here
-      if (totalItems >= MAX_ITEMS_PER_PAGE) {
-        break;
-      }
-    }
-    
-    // Ensure we show at least 2 days (or whatever is available)
-    return Math.max(daysToShow, Math.min(DEFAULT_INCREMENT, data.timeline.length - pageStart));
-  };
-  
-  const increment = calculateIncrement();
-  const pageEnd = pageStart + increment;
+  const pageEnd = pageStart + INCREMENT;
   const onPageChange = (pageStart: number, pageEnd: number) => {
     const params = new URLSearchParams();
     params.set("page", pageStart.toString());
@@ -96,14 +67,14 @@ function ChonologicalPage() {
       found {toPrint} {search && `(filtered by "${search}")`}
       <Pagination
         numItems={data.timeline.length}
-        increment={increment}
+        increment={INCREMENT}
         onChange={onPageChange}
         currentPage={pageStart}
       />
       {days}
       <Pagination
         numItems={data.timeline.length}
-        increment={increment}
+        increment={INCREMENT}
         onChange={onPageChange}
         currentPage={pageStart}
       />

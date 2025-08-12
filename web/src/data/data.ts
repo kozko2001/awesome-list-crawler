@@ -115,11 +115,6 @@ const useData = (searchTerm: string = "") => {
   const processedData = React.useMemo(() => {
     if (!data) return { timeline: [] };
 
-    // If search term is changing (before debounce), show empty results
-    if (searchTerm !== debouncedSearchTerm) {
-      return { timeline: [] };
-    }
-
     if (!debouncedSearchTerm.trim()) {
       return convertData(data);
     }
@@ -141,7 +136,7 @@ const useData = (searchTerm: string = "") => {
     return {
       timeline: orderBy(timeline, (p: AppDayData) => p.date, ["desc"]),
     };
-  }, [data, searchTerm, debouncedSearchTerm, fuse]);
+  }, [data, debouncedSearchTerm, fuse]);
 
   return {
     data: processedData,
