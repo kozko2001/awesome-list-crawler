@@ -86,16 +86,21 @@ const useData = (searchTerm: string = "") => {
     fetcher
   );
 
-  const processedData = React.useMemo(() => {
-    if (!data) return { timeline: [] };
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = React.useState(searchTerm);
 
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const fuse = React.useMemo(() => {
+    if (!data) return null;
+    
     const items = collectItems(data);
-
-    if (!searchTerm.trim()) {
-      return convertData(data);
-    }
-
-    const fuse = new Fuse(items, {
+    return new Fuse(items, {
       keys: [
         { name: 'name', weight: 0.4 },
         { name: 'description', weight: 0.3 },
@@ -105,8 +110,18 @@ const useData = (searchTerm: string = "") => {
       threshold: 0.3,
       includeScore: true
     });
+  }, [data]);
 
-    const searchResults = fuse.search(searchTerm);
+  const processedData = React.useMemo(() => {
+    if (!data) return { timeline: [] };
+
+    if (!debouncedSearchTerm.trim()) {
+      return convertData(data);
+    }
+
+    if (!fuse) return { timeline: [] };
+
+    const searchResults = fuse.search(debouncedSearchTerm);
     const filteredItems = searchResults.map(result => result.item);
 
     const grouped: AppItem[][] = Object.values(
@@ -121,7 +136,7 @@ const useData = (searchTerm: string = "") => {
     return {
       timeline: orderBy(timeline, (p: AppDayData) => p.date, ["desc"]),
     };
-  }, [data, searchTerm]);
+  }, [data, debouncedSearchTerm, fuse]);
 
   return {
     data: processedData,
