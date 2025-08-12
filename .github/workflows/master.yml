@@ -41,9 +41,28 @@ jobs:
       # - run: pipenv run flake8
       # - run: pipenv run mypy
       # - run: pipenv run pytest --cov --cov-fail-under=100
+  
+  changes:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_dispatch'
+    outputs:
+      crawler: ${{ steps.filter.outputs.crawler }}
+      web: ${{ steps.filter.outputs.web }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            crawler:
+              - 'crawler/**'
+            web:
+              - 'web/**'
+
   docker-crawler-image:
     runs-on: ubuntu-latest
-    if: github.event.inputs.force_build == 'true' || github.event_name != 'workflow_dispatch'
+    needs: changes
+    if: github.event.inputs.force_build == 'true' || needs.changes.outputs.crawler == 'true'
     permissions:
       contents: read
       packages: write
@@ -71,7 +90,8 @@ jobs:
 
   docker-web-image:
     runs-on: ubuntu-latest
-    if: github.event.inputs.force_web_build == 'true' || github.event_name != 'workflow_dispatch'
+    needs: changes
+    if: github.event.inputs.force_web_build == 'true' || needs.changes.outputs.web == 'true'
     permissions:
       contents: read
       packages: write
@@ -100,7 +120,7 @@ jobs:
   update-manifests:
     needs: docker-crawler-image
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && needs.docker-crawler-image.result == 'success'
     permissions:
       contents: write
     steps:
@@ -129,7 +149,7 @@ jobs:
   update-web-manifests:
     needs: docker-web-image
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && needs.docker-web-image.result == 'success'
     permissions:
       contents: write
     steps:
