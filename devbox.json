@@ -1,0 +1,15 @@
+{
+  "packages": [
+    "python@3.13",
+    "ruff",
+    "mypy",
+    "python313Packages.pip@latest",
+    "nodejs_22",
+  ],
+  "shell": {
+    "init_hook": [
+      "if [ ! -d .venv ]; then python -m venv .venv; fi",
+      "source .venv/bin/activate",
+    ],
+  },
+}
