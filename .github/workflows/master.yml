@@ -1,10 +1,21 @@
 name: Test
 
 on:
-  pull_request: {}
+  pull_request:
+    paths:
+      - 'crawler/**'
   push:
     branches: main
     tags: "*"
+    paths:
+      - 'crawler/**'
+  workflow_dispatch:
+    inputs:
+      force_build:
+        description: 'Force build crawler image even if no code changes'
+        required: false
+        default: 'false'
+        type: boolean
 
 jobs:
   # test:
@@ -29,6 +40,7 @@ jobs:
       # - run: pipenv run pytest --cov --cov-fail-under=100
   docker-image:
     runs-on: ubuntu-latest
+    if: github.event.inputs.force_build == 'true' || github.event_name != 'workflow_dispatch'
     permissions:
       contents: read
       packages: write
@@ -48,7 +60,7 @@ jobs:
       - name: Build, tag, and push image to Harbor
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./crawler
           push: true
           tags: harbor.allocsoc.net/awesome-crawler/awesome-crawler:${{ github.sha }}
           cache-from: type=gha
