@@ -53,3 +53,32 @@ jobs:
           tags: harbor.allocsoc.net/awesome-crawler/awesome-crawler:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  update-manifests:
+    needs: docker-image
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update image in deployment
+        run: |
+          NEW_IMAGE=harbor.allocsoc.net/awesome-crawler/awesome-crawler:${{ github.sha }}
+          sed -i "s|image: .*|image: ${NEW_IMAGE}|" k8s/awesome-crawler-cronjob.yaml
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add k8s/awesome-crawler-cronjob.yaml
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update awesome-crawler image to ${{ github.sha }}"
+            git push
+          fi
