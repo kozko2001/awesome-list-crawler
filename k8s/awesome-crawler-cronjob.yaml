@@ -1,0 +1,45 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: awesome-crawler-job
+  namespace: awesome-crawler
+spec:
+  schedule: "0 0 * * *"  # Every day at 00:00
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 3600  # 1 hour timeout
+      backoffLimit: 3
+      template:
+        spec:
+          containers:
+          - name: awesome-crawler
+            image: harbor.allocsoc.net/awesome-crawler/awesome-crawler:011b83e9e98b7e4fc850cef027b94bcd4af39c4c
+            env:
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: aws-s3-credentials
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: aws-s3-credentials
+                  key: AWS_SECRET_ACCESS_KEY
+            - name: AWS_DEFAULT_REGION
+              valueFrom:
+                secretKeyRef:
+                  name: aws-s3-credentials
+                  key: AWS_DEFAULT_REGION
+            - name: S3_BUCKET
+              valueFrom:
+                secretKeyRef:
+                  name: aws-s3-credentials
+                  key: S3_BUCKET
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "100m"
+              limits:
+                memory: "512Mi"
+                cpu: "500m"
+          restartPolicy: OnFailure
