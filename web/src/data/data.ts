@@ -82,7 +82,7 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 const useData = (searchTerm: string = "") => {
   const { data, error } = useSWR(
-    "https://awesome-crawler.s3.amazonaws.com/data.json",
+    "https://s3.eu-west-1.amazonaws.com/awesome-crawler.allocsoc.net/data.json",
     fetcher
   );
 
@@ -98,7 +98,7 @@ const useData = (searchTerm: string = "") => {
 
   const fuse = React.useMemo(() => {
     if (!data) return null;
-    
+
     const items = collectItems(data);
     return new Fuse(items, {
       keys: [
@@ -147,7 +147,7 @@ const useData = (searchTerm: string = "") => {
 
 const useRandomData = () => {
   const { data, error } = useSWR(
-    "https://awesome-crawler.s3.amazonaws.com/data.json",
+    "https://s3.eu-west-1.amazonaws.com/awesome-crawler.allocsoc.net/data.json",
     fetcher
   );
 
