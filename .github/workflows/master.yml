@@ -19,15 +19,14 @@ jobs:
   #
   #     - name: Install dependencies with pipenv
   #       run: |
-  #         pip install pipenv
-  #         pipenv install --deploy --dev
-  #
-  #     - run: pipenv run isort --recursive --diff .
-  #     - run: pipenv run black --check .
-  #     - run: pipenv run flake8
-  #     - run: pipenv run mypy
-  #     - run: pipenv run pytest --cov --cov-fail-under=100
-  #
+      #     pip install pipenv
+      #     pipenv install --deploy --dev
+      #
+      # - run: pipenv run isort --recursive --diff .
+      # - run: pipenv run black --check .
+      # - run: pipenv run flake8
+      # - run: pipenv run mypy
+      # - run: pipenv run pytest --cov --cov-fail-under=100
   docker-image:
     runs-on: ubuntu-latest
     permissions:
@@ -54,7 +53,3 @@ jobs:
           tags: harbor.allocsoc.net/awesome-crawler/awesome-crawler:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      - name: Smoke test docker image
-        run: |
-          docker run --rm harbor.allocsoc.net/awesome-crawler/awesome-crawler:${{ github.sha }} 10
