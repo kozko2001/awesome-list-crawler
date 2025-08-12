@@ -1,6 +1,8 @@
+import React from "react";
 import groupBy from "lodash/groupBy";
 import orderBy from "lodash/orderBy";
 import useSWR from "swr";
+import Fuse from "fuse.js";
 
 interface JSONItem {
   name: string;
@@ -78,14 +80,51 @@ const convertData = (json?: JSONData): AppData => {
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
-const useData = () => {
+const useData = (searchTerm: string = "") => {
   const { data, error } = useSWR(
-    "https://awesome-crawler.allocsoc.net/data.json",
+    "http://awesome-crawler.allocsoc.net/data.json",
     fetcher
   );
 
+  const processedData = React.useMemo(() => {
+    if (!data) return { timeline: [] };
+
+    const items = collectItems(data);
+
+    if (!searchTerm.trim()) {
+      return convertData(data);
+    }
+
+    const fuse = new Fuse(items, {
+      keys: [
+        { name: 'name', weight: 0.4 },
+        { name: 'description', weight: 0.3 },
+        { name: 'list_name', weight: 0.2 },
+        { name: 'source', weight: 0.1 }
+      ],
+      threshold: 0.3,
+      includeScore: true
+    });
+
+    const searchResults = fuse.search(searchTerm);
+    const filteredItems = searchResults.map(result => result.item);
+
+    const grouped: AppItem[][] = Object.values(
+      groupBy(filteredItems, (i: AppItem) => i.time)
+    );
+
+    const timeline: AppDayData[] = grouped.map((g: AppItem[]) => ({
+      items: g,
+      date: g[0].time,
+    }));
+
+    return {
+      timeline: orderBy(timeline, (p: AppDayData) => p.date, ["desc"]),
+    };
+  }, [data, searchTerm]);
+
   return {
-    data: convertData(data),
+    data: processedData,
     isLoading: !error && !data,
     isError: error,
   };
@@ -93,7 +132,7 @@ const useData = () => {
 
 const useRandomData = () => {
   const { data, error } = useSWR(
-    "https://awesome-crawler.allocsoc.net/data.json",
+    "http://awesome-crawler.allocsoc.net/data.json",
     fetcher
   );
 

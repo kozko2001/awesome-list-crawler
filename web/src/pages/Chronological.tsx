@@ -15,13 +15,25 @@ function useQuery() {
 
 function ChonologicalPage() {
   const history = useHistory();
-  const page = useQuery().get("page");
+  const query = useQuery();
+  const page = query.get("page");
+  const search = query.get("search") || "";
 
-  const { data } = useData();
+  const { data } = useData(search);
   const pageStart = parseInt(page || "0");
   const pageEnd = pageStart + INCREMENT;
   const onPageChange = (pageStart: number, pageEnd: number) => {
-    history.push(`/?page=${pageStart}`);
+    const params = new URLSearchParams();
+    params.set("page", pageStart.toString());
+    if (search) params.set("search", search);
+    history.push(`/?${params.toString()}`);
+  };
+
+  const onSearchChange = (searchTerm: string) => {
+    const params = new URLSearchParams();
+    params.set("page", "0");
+    if (searchTerm) params.set("search", searchTerm);
+    history.push(`/?${params.toString()}`);
   };
 
   if (data.timeline.length === 0) {
@@ -36,7 +48,23 @@ function ChonologicalPage() {
 
   return (
     <div className="App">
-      found {toPrint}
+      <div style={{ marginBottom: "20px" }}>
+        <input
+          type="text"
+          placeholder="Search items..."
+          value={search}
+          onChange={(e) => onSearchChange(e.target.value)}
+          style={{
+            padding: "8px 12px",
+            fontSize: "16px",
+            border: "1px solid #ccc",
+            borderRadius: "4px",
+            width: "300px",
+            maxWidth: "100%"
+          }}
+        />
+      </div>
+      found {toPrint} {search && `(filtered by "${search}")`}
       <Pagination
         numItems={data.timeline.length}
         increment={INCREMENT}
