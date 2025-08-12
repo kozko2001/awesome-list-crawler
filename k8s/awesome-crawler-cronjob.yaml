@@ -37,9 +37,9 @@ spec:
                   key: S3_BUCKET
             resources:
               requests:
-                memory: "256Mi"
-                cpu: "100m"
-              limits:
                 memory: "512Mi"
                 cpu: "500m"
+              limits:
+                memory: "1024Mi"
+                cpu: "1000m"
           restartPolicy: OnFailure
