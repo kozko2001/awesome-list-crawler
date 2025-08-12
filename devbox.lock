@@ -19,6 +19,11 @@
         }
       }
     },
+    "nodejs_22": {
+      "plugin_version": "0.0.2",
+      "resolved": "github:NixOS/nixpkgs/5a983011e0f4b3b286aaa73e011ce32b1449a528?narHash=sha256-T2%2BGFBeim9Nd1D1sTytRpgo8E2RwlTwHmQUmewBceo4%3D#nodejs_22",
+      "source": "nixpkg"
+    },
     "python313Packages.pip@latest": {
       "last_modified": "2025-07-28T17:09:23Z",
       "resolved": "github:NixOS/nixpkgs/648f70160c03151bc2121d179291337ad6bc564b#python313Packages.pip",
