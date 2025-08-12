@@ -1,4 +1,4 @@
-FROM python:3.9-slim AS base
+FROM python:3.13-slim AS base
 
 # Setup env
 ENV LANG C.UTF-8
@@ -25,7 +25,7 @@ FROM base AS runtime
 COPY --from=python-deps /.venv /.venv
 ENV PATH="/.venv/bin:$PATH"
 
-RUN apt-get update && apt-get install -y --no-install-recommends git 
+RUN apt-get update && apt-get install -y --no-install-recommends git
 
 # Create and switch to a new user
 RUN useradd --create-home appuser
