@@ -7,6 +7,7 @@ on:
     paths:
       - 'crawler/**'
       - 'web/**'
+      - 'backend/**'
   workflow_dispatch:
     inputs:
       force_build:
@@ -46,10 +47,9 @@ jobs:
       # - run: pipenv run flake8
       # - run: pipenv run mypy
       # - run: pipenv run pytest --cov --cov-fail-under=100
-  
+
   changes:
     runs-on: ubuntu-latest
-    if: github.event_name != 'workflow_dispatch'
     outputs:
       crawler: ${{ steps.filter.outputs.crawler }}
       web: ${{ steps.filter.outputs.web }}
