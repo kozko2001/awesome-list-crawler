@@ -88,7 +88,7 @@ const useData = (searchTerm: string = "") => {
       
       // Group by date
       const groupedByDate: { [key: string]: AppItem[] } = {};
-      items.forEach((item) => {
+      items.forEach((item: AppItem) => {
         const dateKey = item.time.toISOString().split('T')[0];
         if (!groupedByDate[dateKey]) {
           groupedByDate[dateKey] = [];
