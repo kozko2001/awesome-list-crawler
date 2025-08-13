@@ -3,26 +3,18 @@ name: Test
 on:
   push:
     branches: main
-    tags: "*"
-    paths:
-      - 'crawler/**'
-      - 'web/**'
-      - 'backend/**'
   workflow_dispatch:
     inputs:
       force_build:
         description: 'Force build crawler image even if no code changes'
-        required: false
         default: 'false'
         type: boolean
       force_web_build:
         description: 'Force build web image even if no code changes'
-        required: false
         default: 'false'
         type: boolean
       force_backend_build:
         description: 'Force build backend image even if no code changes'
-        required: false
         default: 'false'
         type: boolean
 
@@ -51,21 +43,18 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     outputs:
-      crawler: ${{ steps.filter.outputs.crawler }}
-      web: ${{ steps.filter.outputs.web }}
-      backend: ${{ steps.filter.outputs.backend }}
+      crawler: ${{ steps.changes.outputs.crawler }}
+      web: ${{ steps.changes.outputs.web }}
+      backend: ${{ steps.changes.outputs.backend }}
     steps:
       - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
-        id: filter
+      - uses: dorny/paths-filter@v2
+        id: changes
         with:
           filters: |
-            crawler:
-              - 'crawler/**'
-            web:
-              - 'web/**'
-            backend:
-              - 'backend/**'
+            crawler: 'crawler/**'
+            web: 'web/**'
+            backend: 'backend/**'
 
   docker-crawler-image:
     runs-on: ubuntu-latest
@@ -180,7 +169,7 @@ jobs:
             echo "No changes to commit"
           else
             git commit -m "Update awesome-crawler image to ${{ github.sha }}"
-            git push
+            git pcsh
           fi
 
   update-web-manifests:
