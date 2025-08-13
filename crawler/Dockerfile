@@ -37,3 +37,4 @@ COPY . .
 
 # Run the executable
 ENTRYPOINT ["python", "-m", "awesome_crawler"]
+
