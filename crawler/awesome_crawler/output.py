@@ -1,11 +1,15 @@
 from itertools import groupby
 from pathlib import Path
+import logging
 
 import boto3
+import requests
 
 from awesome_crawler.delta import delta
 from awesome_crawler.process import AwesomeItem, AwesomeList
 from awesome_crawler.serialize import Output, OutputItem, OutputList, serialize
+
+logger = logging.getLogger(__name__)
 
 
 def generate_json_str(awesomeItems: list[AwesomeItem]) -> str:
@@ -41,6 +45,26 @@ def write_to_file(content: str, dest: Path):
         f.write(content)
 
 
+def notify_backend_reload():
+    """Notify the backend API to reload data from S3"""
+    backend_url = "https://awesome.allocsoc.net/api/v1/reload"
+    
+    try:
+        logger.info(f"Notifying backend to reload data: {backend_url}")
+        response = requests.post(backend_url, timeout=30)
+        
+        if response.status_code == 200:
+            logger.info("Backend reload notification sent successfully")
+            logger.debug(f"Backend response: {response.text}")
+        else:
+            logger.warning(f"Backend reload notification failed with status {response.status_code}: {response.text}")
+            
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Failed to notify backend reload: {e}")
+    except Exception as e:
+        logger.error(f"Unexpected error notifying backend reload: {e}")
+
+
 def generate_json(awesomeItems: list[AwesomeItem], dest: Path = None):
     content = generate_json_str(awesomeItems)
 
@@ -49,5 +73,7 @@ def generate_json(awesomeItems: list[AwesomeItem], dest: Path = None):
 
     if not dest:
         write_to_s3(content)
+        # Notify backend to reload data after S3 upload
+        notify_backend_reload()
     else:
         write_to_file(content, dest)

@@ -48,6 +48,7 @@ jobs:
     outputs:
       crawler: ${{ steps.filter.outputs.crawler }}
       web: ${{ steps.filter.outputs.web }}
+      backend: ${{ steps.filter.outputs.backend }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -58,6 +59,8 @@ jobs:
               - 'crawler/**'
             web:
               - 'web/**'
+            backend:
+              - 'backend/**'
 
   docker-crawler-image:
     runs-on: ubuntu-latest
@@ -117,6 +120,35 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  docker-backend-image:
+    runs-on: ubuntu-latest
+    needs: changes
+    if: github.event.inputs.force_build == 'true' || needs.changes.outputs.backend == 'true'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Harbor
+        uses: docker/login-action@v3
+        with:
+          registry: harbor.allocsoc.net
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
+
+      - name: Build, tag, and push backend image to Harbor
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: harbor.allocsoc.net/awesome-crawler/awesome-backend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
   update-manifests:
     needs: docker-crawler-image
     runs-on: ubuntu-latest
@@ -172,5 +204,34 @@ jobs:
             echo "No changes to commit"
           else
             git commit -m "Update awesome-web image to ${{ github.sha }}"
+            git push
+          fi
+
+  update-backend-manifests:
+    needs: docker-backend-image
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && needs.docker-backend-image.result == 'success'
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update backend image in deployment
+        run: |
+          NEW_IMAGE=harbor.allocsoc.net/awesome-crawler/awesome-backend:${{ github.sha }}
+          sed -i "s|image: harbor.allocsoc.net/awesome-crawler/awesome-backend:.*|image: ${NEW_IMAGE}|" k8s/awesome-backend.yaml
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add k8s/awesome-backend.yaml
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update awesome-backend image to ${{ github.sha }}"
             git push
           fi

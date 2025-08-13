@@ -1,26 +1,5 @@
 import React from "react";
-import groupBy from "lodash/groupBy";
-import orderBy from "lodash/orderBy";
 import useSWR from "swr";
-import Fuse from "fuse.js";
-
-interface JSONItem {
-  name: string;
-  source: string;
-  description: string;
-  time: string;
-}
-
-interface JSONList {
-  name: string;
-  description: string;
-  source: string;
-  items: JSONItem[];
-}
-
-interface JSONData {
-  lists: JSONList[];
-}
 
 export interface AppItem {
   name: string;
@@ -40,52 +19,40 @@ interface AppData {
   timeline: AppDayData[];
 }
 
-const collectItems = (json: JSONData): AppItem[] => {
-  const items = json.lists
-    .map((l) =>
-      l.items.map((i) => {
-        return {
-          ...i,
-          list_name: l.name,
-          list_source: l.source,
-          time: new Date(i.time.split("T")[0]),
-        };
-      })
-    )
-    .flat();
-  return items;
-};
+interface ApiResponse {
+  timeline: AppDayData[];
+  page: number;
+  size: number;
+  total: number;
+  total_pages: number;
+}
 
-const convertData = (json?: JSONData): AppData => {
-  if (!json) {
-    return { timeline: [] };
-  }
-
-  const items = collectItems(json);
-  const grouped: AppItem[][] = Object.values(
-    groupBy(items, (i: AppItem) => i.time)
-  );
-
-  const x: AppDayData[] = grouped.map((g: AppItem[]) => {
-    return {
-      items: g,
-      date: g[0].time,
-    };
-  });
-
-  return {
-    timeline: orderBy(x, (p: AppDayData) => p.date, ["desc"]),
-  };
-};
+// API Base URL - will be the same domain with /api/v1 prefix
+const API_BASE_URL = "/api/v1";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
-const useData = (searchTerm: string = "") => {
-  const { data, error } = useSWR(
-    "https://s3.eu-west-1.amazonaws.com/awesome-crawler.allocsoc.net/data.json",
-    fetcher
-  );
+// Transform API response to match existing AppItem interface
+const transformApiItem = (item: any): AppItem => ({
+  name: item.name,
+  description: item.description,
+  source: item.source,
+  list_name: item.list_name,
+  list_source: item.list_source,
+  time: new Date(item.time), // API returns ISO string, convert to Date
+});
 
+const transformApiResponse = (response: ApiResponse): AppData => {
+  const timeline = response.timeline.map((day: any) => ({
+    ...day,
+    date: new Date(day.date),
+    items: day.items.map(transformApiItem),
+  }));
+  
+  return { timeline };
+};
+
+const useData = (searchTerm: string = "") => {
   const [debouncedSearchTerm, setDebouncedSearchTerm] = React.useState(searchTerm);
 
   React.useEffect(() => {
@@ -96,80 +63,80 @@ const useData = (searchTerm: string = "") => {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  const fuse = React.useMemo(() => {
-    if (!data) return null;
+  // Determine API endpoint based on search term
+  const apiUrl = React.useMemo(() => {
+    if (!debouncedSearchTerm.trim()) {
+      return `${API_BASE_URL}/timeline?page=1&size=50`; // Get more days for initial load
+    } else {
+      return `${API_BASE_URL}/search?q=${encodeURIComponent(debouncedSearchTerm)}&page=1&size=100`;
+    }
+  }, [debouncedSearchTerm]);
 
-    const items = collectItems(data);
-    return new Fuse(items, {
-      keys: [
-        { name: 'name', weight: 0.4 },
-        { name: 'description', weight: 0.3 },
-        { name: 'list_name', weight: 0.2 },
-        { name: 'source', weight: 0.1 }
-      ],
-      threshold: 0.3,
-      includeScore: true
-    });
-  }, [data]);
+  const { data: apiResponse, error } = useSWR(apiUrl, fetcher);
 
+  // Transform the response data
   const processedData = React.useMemo(() => {
-    if (!data) return { timeline: [] };
+    if (!apiResponse) return { timeline: [] };
 
     if (!debouncedSearchTerm.trim()) {
-      return convertData(data);
+      // For timeline, use the response directly
+      return transformApiResponse(apiResponse);
+    } else {
+      // For search results, we get items instead of timeline
+      // Group items by date to create timeline format
+      const items = apiResponse.items.map(transformApiItem);
+      
+      // Group by date
+      const groupedByDate: { [key: string]: AppItem[] } = {};
+      items.forEach((item) => {
+        const dateKey = item.time.toISOString().split('T')[0];
+        if (!groupedByDate[dateKey]) {
+          groupedByDate[dateKey] = [];
+        }
+        groupedByDate[dateKey].push(item);
+      });
+
+      // Convert to timeline format and sort by date descending
+      const timeline: AppDayData[] = Object.entries(groupedByDate)
+        .map(([dateStr, items]) => ({
+          date: new Date(dateStr),
+          items: items.sort((a, b) => b.time.getTime() - a.time.getTime()), // Sort items within day
+        }))
+        .sort((a, b) => b.date.getTime() - a.date.getTime()); // Sort days descending
+
+      return { timeline };
     }
-
-    if (!fuse) return { timeline: [] };
-
-    const searchResults = fuse.search(debouncedSearchTerm);
-    const filteredItems = searchResults.map(result => result.item);
-
-    const grouped: AppItem[][] = Object.values(
-      groupBy(filteredItems, (i: AppItem) => i.time)
-    );
-
-    const timeline: AppDayData[] = grouped.map((g: AppItem[]) => ({
-      items: g,
-      date: g[0].time,
-    }));
-
-    return {
-      timeline: orderBy(timeline, (p: AppDayData) => p.date, ["desc"]),
-    };
-  }, [data, debouncedSearchTerm, fuse]);
+  }, [apiResponse, debouncedSearchTerm]);
 
   return {
     data: processedData,
-    isLoading: !error && !data,
+    isLoading: !error && !apiResponse,
     isError: error,
   };
 };
 
 const useRandomData = () => {
-  const { data, error } = useSWR(
-    "https://s3.eu-west-1.amazonaws.com/awesome-crawler.allocsoc.net/data.json",
+  const { data: apiResponse, error } = useSWR(
+    `${API_BASE_URL}/lucky`,
     fetcher
   );
 
-  let randomData: JSONData;
+  const processedData = React.useMemo(() => {
+    if (!apiResponse) return { timeline: [] };
+    
+    return transformApiResponse(apiResponse);
+  }, [apiResponse]);
 
-  if (data) {
-    const randomList =
-      data.lists[Math.floor(Math.random() * data.lists.length)];
-
-    randomData = {
-      lists: [randomList],
-    };
-  } else {
-    randomData = { lists: [] };
-  }
-
-  console.log(randomData);
   return {
-    data: convertData(randomData),
-    isLoading: !error && !data,
+    data: processedData,
+    isLoading: !error && !apiResponse,
     isError: error,
   };
+};
+
+// Legacy function for backward compatibility (not used with API)
+const convertData = (json?: any): AppData => {
+  return { timeline: [] };
 };
 
 export { convertData, useData, useRandomData };

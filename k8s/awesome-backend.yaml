@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: awesome-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: awesome-backend
+  template:
+    metadata:
+      labels:
+        app: awesome-backend
+    spec:
+      containers:
+      - name: backend
+        image: harbor.allocsoc.net/awesome-crawler/awesome-backend:latest
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        - name: AWS_DEFAULT_REGION
+          value: "eu-west-1"
+        - name: S3_BUCKET
+          value: "awesome-crawler.allocsoc.net"
+        - name: S3_KEY
+          value: "data.json"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: awesome-backend-service
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: awesome-backend

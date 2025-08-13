@@ -5,6 +5,7 @@ resources:
 - namespace.yaml
 - awesome-crawler-cronjob.yaml
 - awesome-web.yaml
+- awesome-backend.yaml
 
 # Namespace for all resources
 namespace: awesome-crawler
