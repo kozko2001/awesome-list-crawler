@@ -19,6 +19,11 @@ on:
         required: false
         default: 'false'
         type: boolean
+      force_backend_build:
+        description: 'Force build backend image even if no code changes'
+        required: false
+        default: 'false'
+        type: boolean
 
 jobs:
   # test:
@@ -123,7 +128,7 @@ jobs:
   docker-backend-image:
     runs-on: ubuntu-latest
     needs: changes
-    if: github.event.inputs.force_build == 'true' || needs.changes.outputs.backend == 'true'
+    if: github.event.inputs.force_backend_build == 'true' || needs.changes.outputs.backend == 'true'
     permissions:
       contents: read
       packages: write
