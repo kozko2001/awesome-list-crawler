@@ -47,7 +47,7 @@ spec:
     spec:
       containers:
       - name: web
-        image: harbor.allocsoc.net/awesome-crawler/awesome-web:826694c6bc4b14a8b3cd2f25a2945c42ac58d15d
+        image: harbor.allocsoc.net/awesome-crawler/awesome-web:03e0b086cfa72b7733e6a39815aed7760e239563
         ports:
         - containerPort: 80
           name: http
