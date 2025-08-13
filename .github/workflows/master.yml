@@ -51,19 +51,15 @@ jobs:
       - uses: dorny/paths-filter@v3
         id: changes
         with:
-        filters: |
-          crawler:
-            - 'crawler/**'
-          web:
-            - 'web/**'
-          backend:
-            - 'backend/**'
         with:
           base: HEAD
           filters: |
-            crawler: 'crawler/**'
-            web: 'web/**'
-            backend: 'backend/**'
+            crawler:
+              - 'crawler/**'
+            web:
+              - 'web/**'
+            backend:
+              - 'backend/**'
 
   docker-crawler-image:
     runs-on: ubuntu-latest
