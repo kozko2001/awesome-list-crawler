@@ -128,11 +128,7 @@ async def search_items(
         raise HTTPException(status_code=400, detail="Search query is required")
     
     items, total_pages = data_service.search_items(q, page, size)
-    
-    # For search, we need to count total matching items (not all items)
-    # This is approximate since we're doing pagination after scoring
-    all_matches, _ = data_service.search_items(q, 1, 10000)  # Get all matches
-    total_matches = len(all_matches)
+    total_matches = data_service.count_search_results(q)
     
     return ItemsResponse(
         items=items,

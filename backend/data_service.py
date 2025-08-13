@@ -1,11 +1,12 @@
 import json
 import logging
+import tempfile
 from datetime import datetime
 from typing import List, Optional
 from itertools import groupby
 
 import boto3
-from fuzzywuzzy import fuzz, process
+import tantivy
 from botocore.exceptions import ClientError
 
 from models import JSONData, AppItem, AppDayData
@@ -22,6 +23,9 @@ class DataService:
         self.items: List[AppItem] = []
         self.timeline: List[AppDayData] = []
         self.last_updated: Optional[datetime] = None
+        # Tantivy search index
+        self.search_index: Optional[tantivy.Index] = None
+        self.searcher: Optional[tantivy.Searcher] = None
         
     def load_data_from_s3(self) -> bool:
         """Load data from S3 and process it into memory structures"""
@@ -79,6 +83,7 @@ class DataService:
         
         self.items = items
         self._build_timeline()
+        self._build_search_index()
     
     def _build_timeline(self):
         """Group items by date and build timeline"""
@@ -101,6 +106,47 @@ class DataService:
         
         # Sort timeline by date descending (most recent first)
         self.timeline = sorted(grouped_items, key=lambda x: x.date, reverse=True)
+    
+    def _build_search_index(self):
+        """Build Tantivy search index for fast full-text search"""
+        if not self.items:
+            return
+        
+        try:
+            # Create schema with fields for searching
+            schema_builder = tantivy.SchemaBuilder()
+            schema_builder.add_text_field("name", stored=True)
+            schema_builder.add_text_field("description", stored=True)
+            schema_builder.add_text_field("list_name", stored=True)
+            schema_builder.add_text_field("source", stored=True)
+            schema_builder.add_integer_field("item_id", stored=True, indexed=True)
+            schema = schema_builder.build()
+            
+            # Create index in memory
+            self.search_index = tantivy.Index(schema, path=None)
+            
+            # Index all items
+            writer = self.search_index.writer()
+            for i, item in enumerate(self.items):
+                writer.add_document(tantivy.Document(
+                    name=item.name or "",
+                    description=item.description or "",
+                    list_name=item.list_name or "",
+                    source=item.source or "",
+                    item_id=i
+                ))
+            writer.commit()
+            
+            # Create searcher
+            self.search_index.reload()
+            self.searcher = self.search_index.searcher()
+            
+            logger.info(f"Built search index with {len(self.items)} items")
+            
+        except Exception as e:
+            logger.error(f"Error building search index: {e}")
+            self.search_index = None
+            self.searcher = None
     
     def get_timeline_page(self, page: int = 1, size: int = 10) -> tuple[List[AppDayData], int]:
         """Get paginated timeline (days)"""
@@ -126,46 +172,76 @@ class DataService:
         return paginated_items, total_pages
     
     def search_items(self, query: str, page: int = 1, size: int = 20) -> tuple[List[AppItem], int]:
-        """Search items using fuzzy matching"""
+        """Search items using Tantivy full-text search"""
         if not query or not query.strip():
             return self.get_items_page(page, size)
         
-        query = query.strip().lower()
+        if not self.searcher or not self.search_index:
+            logger.warning("Search index not available, falling back to pagination")
+            return self.get_items_page(page, size)
         
-        # Create searchable strings for each item
-        searchable_items = []
-        for item in self.items:
-            # Combine all searchable fields with weights
-            searchable_text = f"{item.name} {item.description} {item.list_name} {item.source}".lower()
-            searchable_items.append((searchable_text, item))
-        
-        # Use fuzzywuzzy to find matches
-        matches = []
-        for searchable_text, item in searchable_items:
-            # Calculate fuzzy match score
-            score = max(
-                fuzz.partial_ratio(query, item.name.lower()) * 0.4,
-                fuzz.partial_ratio(query, item.description.lower()) * 0.3,
-                fuzz.partial_ratio(query, item.list_name.lower()) * 0.2,
-                fuzz.partial_ratio(query, item.source.lower()) * 0.1
+        try:
+            query = query.strip()
+            
+            # Build query - search across all fields with boosting
+            query_parser = tantivy.QueryParser.for_index(
+                self.search_index, 
+                ["name", "description", "list_name", "source"]
             )
             
-            # Include items with score > 60
-            if score > 60:
-                matches.append((score, item))
+            # Parse the query - Tantivy handles phrase queries, wildcards, etc.
+            parsed_query = query_parser.parse_query(query)
+            
+            # Search with a reasonable limit (we'll paginate after)
+            max_results = max(1000, (page * size))
+            top_docs = self.searcher.search(parsed_query, max_results)
+            
+            # Extract items using the stored item_id
+            matched_items = []
+            for score, doc_address in top_docs:
+                doc = self.searcher.doc(doc_address)
+                item_id = doc["item_id"][0]
+                if 0 <= item_id < len(self.items):
+                    matched_items.append(self.items[item_id])
+            
+            # Paginate results
+            total_matches = len(matched_items)
+            start_idx = (page - 1) * size
+            end_idx = start_idx + size
+            
+            paginated_items = matched_items[start_idx:end_idx]
+            total_pages = (total_matches + size - 1) // size
+            
+            return paginated_items, total_pages
+            
+        except Exception as e:
+            logger.error(f"Search error: {e}")
+            # Fallback to regular pagination
+            return self.get_items_page(page, size)
+    
+    def count_search_results(self, query: str) -> int:
+        """Count total search results without pagination"""
+        if not query or not query.strip():
+            return len(self.items)
         
-        # Sort by score descending, then by time descending
-        matches.sort(key=lambda x: (-x[0], -x[1].time.timestamp()))
-        filtered_items = [item for score, item in matches]
+        if not self.searcher or not self.search_index:
+            return len(self.items)
         
-        # Paginate results
-        start_idx = (page - 1) * size
-        end_idx = start_idx + size
-        
-        paginated_items = filtered_items[start_idx:end_idx]
-        total_pages = (len(filtered_items) + size - 1) // size
-        
-        return paginated_items, total_pages
+        try:
+            query = query.strip()
+            query_parser = tantivy.QueryParser.for_index(
+                self.search_index, 
+                ["name", "description", "list_name", "source"]
+            )
+            parsed_query = query_parser.parse_query(query)
+            
+            # Search with high limit to get accurate count
+            top_docs = self.searcher.search(parsed_query, 10000)
+            return len(top_docs)
+            
+        except Exception as e:
+            logger.error(f"Search count error: {e}")
+            return len(self.items)
     
     def get_random_list(self) -> AppDayData:
         """Get a random list converted to timeline format"""

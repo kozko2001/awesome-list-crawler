@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: awesome-backend
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: awesome-backend
@@ -19,10 +19,26 @@ spec:
         - containerPort: 8000
           name: http
         env:
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: aws-s3-credentials
+              key: AWS_ACCESS_KEY_ID
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: aws-s3-credentials
+              key: AWS_SECRET_ACCESS_KEY
         - name: AWS_DEFAULT_REGION
-          value: "eu-west-1"
+          valueFrom:
+            secretKeyRef:
+              name: aws-s3-credentials
+              key: AWS_DEFAULT_REGION
         - name: S3_BUCKET
-          value: "awesome-crawler.allocsoc.net"
+          valueFrom:
+            secretKeyRef:
+              name: aws-s3-credentials
+              key: S3_BUCKET
         - name: S3_KEY
           value: "data.json"
         resources:
@@ -30,21 +46,29 @@ spec:
             memory: "128Mi"
             cpu: "100m"
           limits:
-            memory: "512Mi"
+            memory: "1Gi"
             cpu: "500m"
         livenessProbe:
           httpGet:
             path: /api/v1/health
             port: 8000
-          initialDelaySeconds: 30
+          initialDelaySeconds: 300
           periodSeconds: 30
           timeoutSeconds: 5
           failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /api/v1/health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 20
         readinessProbe:
           httpGet:
             path: /api/v1/health
             port: 8000
-          initialDelaySeconds: 10
+          initialDelaySeconds: 100
           periodSeconds: 10
           timeoutSeconds: 3
           failureThreshold: 3
