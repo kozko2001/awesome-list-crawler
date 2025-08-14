@@ -24,10 +24,10 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Ensure TypeScript can resolve paths
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
-# Debug: Verify TypeScript config and module resolution
-RUN cat tsconfig.json
-RUN ls -la src/lib/
-RUN npx tsc --noEmit --listFiles | grep "lib/api" || echo "lib/api not found in TS compilation"
+# Debug: Check what's actually copied
+RUN ls -la
+RUN ls -la src/
+RUN find . -name "*.ts" -type f | head -20
 
 # Build the application
 RUN npm run build
