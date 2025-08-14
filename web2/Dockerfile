@@ -1,5 +1,5 @@
 # Multi-stage build for optimal image size
-FROM node:18-alpine AS base
+FROM node:22-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -20,14 +20,6 @@ COPY . .
 # Learn more here: https://nextjs.org/telemetry
 # Uncomment the following line in case you want to disable telemetry during the build.
 ENV NEXT_TELEMETRY_DISABLED=1
-
-# Ensure TypeScript can resolve paths
-ENV NODE_OPTIONS="--max-old-space-size=4096"
-
-# Debug: Check what's actually copied
-RUN ls -la
-RUN ls -la src/
-RUN find . -name "*.ts" -type f | head -20
 
 # Build the application
 RUN npm run build
