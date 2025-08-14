@@ -40,7 +40,9 @@ export default defineConfig({
       use: { 
         ...devices['Desktop Chrome'],
         // Use system chromium on NixOS/devbox
-        executablePath: process.env.DEVBOX_SHELL_ENABLED ? 'chromium' : undefined,
+        launchOptions: {
+          executablePath: process.env.DEVBOX_SHELL_ENABLED ? 'chromium' : undefined,
+        },
       },
     },
   ],
