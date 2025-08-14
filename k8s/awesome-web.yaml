@@ -9,10 +9,10 @@ metadata:
 spec:
   tls:
     - hosts:
-      - awesome.allocsoc.net
-      secretName: awesome-allocsoc-net-tls
+      - old.awesome.allocsoc.net
+      secretName: old-awesome-allocsoc-net-tls
   rules:
-    - host: awesome.allocsoc.net
+    - host: old.awesome.allocsoc.net
       http:
         paths:
           - path: /api/v1

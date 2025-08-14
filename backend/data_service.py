@@ -269,6 +269,9 @@ class DataService:
                 if 0 <= item_id < len(self.items):
                     matched_items.append(self.items[item_id])
             
+            # Sort results by date (most recent first)
+            matched_items.sort(key=lambda x: x.time, reverse=True)
+            
             # Paginate results
             total_matches = len(matched_items)
             start_idx = (page - 1) * size
