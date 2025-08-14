@@ -47,15 +47,17 @@ export function SearchPage() {
           
           {/* Search Input */}
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-4 w-4 text-terminal-gray" />
-            </div>
+            {!query && (
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-terminal-gray" />
+              </div>
+            )}
             <input
               type="text"
               value={query}
               onChange={handleSearch}
               placeholder="Search repositories... (e.g., 'javascript', 'machine learning', 'react')"
-              className="terminal-input w-full pl-10 pr-10 text-sm placeholder:text-terminal-gray"
+              className={`terminal-input w-full pr-10 text-sm placeholder:text-terminal-gray ${query ? 'pl-3' : 'pl-10'}`}
               autoFocus
             />
             {query && (

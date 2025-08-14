@@ -135,6 +135,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: web2/package-lock.json
+
+      - name: Install dependencies
+        working-directory: web2
+        run: npm ci
+
+      - name: Run tests
+        working-directory: web2
+        run: npm test -- --coverage --watchAll=false
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 

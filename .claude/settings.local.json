@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker build:*)",
+      "Bash(kubectl get pods:*)",
+      "Bash(kubectl describe:*)",
+      "Bash(kubectl get deployment:*)",
+      "Bash(kubectl apply:*)",
+      "Bash(npm install:*)",
+      "Bash(touch:*)",
+      "Bash(npm test)"
+    ],
+    "deny": []
+  }
+}

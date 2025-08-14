@@ -19,9 +19,11 @@ export function Navigation() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center">
-            <h1 className="text-xl font-bold glow-text">
-              $ awesome-crawler<span className="cursor"></span>
-            </h1>
+            <Link href="/" className="hover:text-terminal-green transition-colors duration-200">
+              <h1 className="text-xl font-bold glow-text">
+                $ awesome-crawler<span className="cursor"></span>
+              </h1>
+            </Link>
           </div>
 
           {/* Navigation Links */}
