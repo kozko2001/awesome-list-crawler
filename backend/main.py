@@ -28,20 +28,25 @@ def parse_args():
     parser.add_argument('--local-file', type=str, help='Use local file instead of S3 (overrides env vars)')
     return parser.parse_args()
 
-# Initialize configuration
-args = parse_args()
-
-# Configure data source via command line args or environment variables
-if args.local_file:
-    DATA_SOURCE = "local"
-    LOCAL_FILE_PATH = args.local_file
-    S3_BUCKET = None
-    S3_KEY = None
+# Initialize configuration - only parse args if running directly
+if __name__ == "__main__":
+    args = parse_args()
+    if args.local_file:
+        DATA_SOURCE = "local"
+        LOCAL_FILE_PATH = args.local_file
+        S3_BUCKET = None
+        S3_KEY = None
+    else:
+        DATA_SOURCE = "s3"
+        S3_BUCKET = os.getenv("S3_BUCKET", "awesome-crawler.allocsoc.net")
+        S3_KEY = os.getenv("S3_KEY", "data.json")
+        LOCAL_FILE_PATH = None
 else:
-    DATA_SOURCE = "s3"
+    # When imported by uvicorn, use environment variables only
+    DATA_SOURCE = os.getenv("DATA_SOURCE", "s3")
     S3_BUCKET = os.getenv("S3_BUCKET", "awesome-crawler.allocsoc.net")
     S3_KEY = os.getenv("S3_KEY", "data.json")
-    LOCAL_FILE_PATH = None
+    LOCAL_FILE_PATH = os.getenv("LOCAL_FILE_PATH", "data/data.json")
 
 data_service = DataService(
     data_source=DATA_SOURCE,
