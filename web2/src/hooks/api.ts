@@ -1,5 +1,5 @@
 import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
-import { api } from '@/lib/api';
+import { api } from '../lib/api';
 
 // Health check
 export const useHealth = () =>
