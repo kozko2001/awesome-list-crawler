@@ -1,0 +1,128 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+:root {
+  --background: #000000;
+  --foreground: #ffffff;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-mono: 'JetBrains Mono', 'Fira Code', Consolas, Monaco, monospace;
+  
+  /* Terminal theme colors */
+  --color-terminal-bg: #000000;
+  --color-terminal-text: #ffffff;
+  --color-terminal-green: #00ff41;
+  --color-terminal-green-dark: #00cc33;
+  --color-terminal-border: #333333;
+  --color-terminal-gray: #808080;
+  
+  /* Animation keyframes */
+  --animate-blink: blink 1s infinite;
+  --animate-glow: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+@keyframes glow {
+  0% { box-shadow: 0 0 5px #00ff41; }
+  100% { box-shadow: 0 0 20px #00ff41, 0 0 30px #00ff41; }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.6;
+  letter-spacing: 0.5px;
+}
+
+/* Terminal cursor blink effect */
+.cursor::after {
+  content: '_';
+  animation: var(--animate-blink);
+  color: var(--color-terminal-green);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #000;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Selection styling */
+::selection {
+  background: var(--color-terminal-green);
+  color: #000;
+}
+
+/* Terminal-style focus outline */
+*:focus {
+  outline: 2px solid var(--color-terminal-green);
+  outline-offset: 2px;
+}
+
+/* Utility classes */
+.glow-text {
+  text-shadow: 0 0 10px var(--color-terminal-green);
+}
+
+.terminal-border {
+  border: 1px solid var(--color-terminal-border);
+}
+
+.terminal-button {
+  background: var(--color-terminal-bg);
+  border: 1px solid var(--color-terminal-border);
+  color: var(--color-terminal-text);
+  padding: 0.5rem 1rem;
+  font-family: var(--font-mono);
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.terminal-button:hover {
+  border-color: var(--color-terminal-green);
+  color: var(--color-terminal-green);
+}
+
+.terminal-input {
+  background: var(--color-terminal-bg);
+  border: 1px solid var(--color-terminal-border);
+  color: var(--color-terminal-text);
+  padding: 0.5rem 0.75rem;
+  font-family: var(--font-mono);
+}
+
+.terminal-input:focus {
+  border-color: var(--color-terminal-green);
+  outline: none;
+}

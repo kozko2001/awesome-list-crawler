@@ -13,6 +13,10 @@ on:
         description: 'Force build web image even if no code changes'
         default: 'false'
         type: boolean
+      force_web2_build:
+        description: 'Force build web2 image even if no code changes'
+        default: 'false'
+        type: boolean
       force_backend_build:
         description: 'Force build backend image even if no code changes'
         default: 'false'
@@ -45,6 +49,7 @@ jobs:
     outputs:
       crawler: ${{ steps.changes.outputs.crawler }}
       web: ${{ steps.changes.outputs.web }}
+      web2: ${{ steps.changes.outputs.web2 }}
       backend: ${{ steps.changes.outputs.backend }}
     steps:
       - uses: actions/checkout@v4
@@ -57,6 +62,8 @@ jobs:
               - 'crawler/**'
             web:
               - 'web/**'
+            web2:
+              - 'web2/**'
             backend:
               - 'backend/**'
 
@@ -115,6 +122,35 @@ jobs:
           context: ./web
           push: true
           tags: harbor.allocsoc.net/awesome-crawler/awesome-web:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  docker-web2-image:
+    runs-on: ubuntu-latest
+    needs: changes
+    if: github.event.inputs.force_web2_build == 'true' || needs.changes.outputs.web2 == 'true'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Harbor
+        uses: docker/login-action@v3
+        with:
+          registry: harbor.allocsoc.net
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
+
+      - name: Build, tag, and push web2 image to Harbor
+        uses: docker/build-push-action@v5
+        with:
+          context: ./web2
+          push: true
+          tags: harbor.allocsoc.net/awesome-crawler/awesome-web2:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -231,5 +267,34 @@ jobs:
             echo "No changes to commit"
           else
             git commit -m "Update awesome-backend image to ${{ github.sha }}"
+            git push
+          fi
+
+  update-web2-manifests:
+    needs: docker-web2-image
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && needs.docker-web2-image.result == 'success'
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update web2 image in deployment
+        run: |
+          NEW_IMAGE=harbor.allocsoc.net/awesome-crawler/awesome-web2:${{ github.sha }}
+          sed -i "s|image: harbor.allocsoc.net/awesome-crawler/awesome-web2:.*|image: ${NEW_IMAGE}|" k8s/awesome-web2.yaml
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add k8s/awesome-web2.yaml
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update awesome-web2 image to ${{ github.sha }}"
             git push
           fi
