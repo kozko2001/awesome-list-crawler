@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: backend
-        image: harbor.allocsoc.net/awesome-crawler/awesome-backend:898b2d8db62ecdb679c035c396936386fe6ee106
+        image: harbor.allocsoc.net/awesome-crawler/awesome-backend:ea34d662a76237e8c9124bcd6c3989edc63a7b39
         ports:
         - containerPort: 8000
           name: http
