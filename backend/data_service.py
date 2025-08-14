@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import tempfile
 from datetime import datetime
 from typing import List, Optional
@@ -15,10 +16,22 @@ logger = logging.getLogger(__name__)
 
 
 class DataService:
-    def __init__(self, bucket_name: str = "awesome-crawler.allocsoc.net", s3_key: str = "data.json"):
+    def __init__(self, 
+                 data_source: str = "s3",
+                 bucket_name: str = "awesome-crawler.allocsoc.net", 
+                 s3_key: str = "data.json",
+                 local_file_path: str = "data/data.json"):
+        self.data_source = data_source.lower()
         self.bucket_name = bucket_name
         self.s3_key = s3_key
-        self.s3_client = boto3.client("s3")
+        self.local_file_path = local_file_path
+        
+        # Only initialize S3 client if using S3
+        if self.data_source == "s3":
+            self.s3_client = boto3.client("s3")
+        else:
+            self.s3_client = None
+            
         self.raw_data: Optional[JSONData] = None
         self.items: List[AppItem] = []
         self.timeline: List[AppDayData] = []
@@ -27,10 +40,24 @@ class DataService:
         self.search_index: Optional[tantivy.Index] = None
         self.searcher: Optional[tantivy.Searcher] = None
         
-    def load_data_from_s3(self) -> bool:
+    def load_data(self) -> bool:
+        """Load data from configured source (S3 or local file)"""
+        if self.data_source == "s3":
+            return self._load_data_from_s3()
+        elif self.data_source == "local":
+            return self._load_data_from_local()
+        else:
+            logger.error(f"Unknown data source: {self.data_source}")
+            return False
+    
+    def _load_data_from_s3(self) -> bool:
         """Load data from S3 and process it into memory structures"""
         try:
             logger.info(f"Loading data from S3: s3://{self.bucket_name}/{self.s3_key}")
+            
+            if not self.s3_client:
+                logger.error("S3 client not initialized")
+                return False
             
             response = self.s3_client.get_object(Bucket=self.bucket_name, Key=self.s3_key)
             content = response['Body'].read().decode('utf-8')
@@ -45,15 +72,43 @@ class DataService:
             logger.info(f"Successfully loaded {len(self.items)} items from {len(self.raw_data.lists)} lists")
             return True
             
-        except ClientError as e:
+        except Exception as e:
             logger.error(f"Error loading from S3: {e}")
             return False
+    
+    def _load_data_from_local(self) -> bool:
+        """Load data from local file and process it into memory structures"""
+        try:
+            logger.info(f"Loading data from local file: {self.local_file_path}")
+            
+            if not os.path.exists(self.local_file_path):
+                logger.error(f"Local file not found: {self.local_file_path}")
+                return False
+            
+            with open(self.local_file_path, 'r', encoding='utf-8') as file:
+                content = file.read()
+            
+            data_dict = json.loads(content)
+            self.raw_data = JSONData(**data_dict)
+            
+            # Convert to internal format
+            self._process_data()
+            self.last_updated = datetime.now()
+            
+            logger.info(f"Successfully loaded {len(self.items)} items from {len(self.raw_data.lists)} lists")
+            return True
+            
         except json.JSONDecodeError as e:
-            logger.error(f"Error parsing JSON: {e}")
+            logger.error(f"Error parsing JSON from local file: {e}")
             return False
         except Exception as e:
-            logger.error(f"Unexpected error loading data: {e}")
+            logger.error(f"Unexpected error loading local data: {e}")
             return False
+
+    # Keep backward compatibility
+    def load_data_from_s3(self) -> bool:
+        """Backward compatibility method - use load_data() instead"""
+        return self._load_data_from_s3()
     
     def _process_data(self):
         """Convert raw JSON data to internal AppItem format"""
@@ -183,14 +238,8 @@ class DataService:
         try:
             query = query.strip()
             
-            # Build query - search across all fields with boosting
-            query_parser = tantivy.QueryParser.for_index(
-                self.search_index, 
-                ["name", "description", "list_name", "source"]
-            )
-            
-            # Parse the query - Tantivy handles phrase queries, wildcards, etc.
-            parsed_query = query_parser.parse_query(query)
+            # Parse the query - search across all fields
+            parsed_query = self.search_index.parse_query(query, ["name", "description", "list_name", "source"])
             
             # Search with a reasonable limit (we'll paginate after)
             max_results = max(1000, (page * size))
@@ -198,7 +247,7 @@ class DataService:
             
             # Extract items using the stored item_id
             matched_items = []
-            for score, doc_address in top_docs:
+            for score, doc_address in top_docs.hits:
                 doc = self.searcher.doc(doc_address)
                 item_id = doc["item_id"][0]
                 if 0 <= item_id < len(self.items):
@@ -229,15 +278,11 @@ class DataService:
         
         try:
             query = query.strip()
-            query_parser = tantivy.QueryParser.for_index(
-                self.search_index, 
-                ["name", "description", "list_name", "source"]
-            )
-            parsed_query = query_parser.parse_query(query)
+            parsed_query = self.search_index.parse_query(query, ["name", "description", "list_name", "source"])
             
             # Search with high limit to get accurate count
             top_docs = self.searcher.search(parsed_query, 10000)
-            return len(top_docs)
+            return len(top_docs.hits)
             
         except Exception as e:
             logger.error(f"Search count error: {e}")

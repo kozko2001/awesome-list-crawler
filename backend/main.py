@@ -1,3 +1,4 @@
+import argparse
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -10,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from data_service import DataService
 from models import (
-    TimelineResponse, ItemsResponse, AppDayData, 
+    TimelineResponse, ItemsResponse, AppDayData,
     HealthResponse, PaginatedResponse
 )
 
@@ -21,8 +22,33 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Global data service instance
-data_service = DataService()
+# Parse command line arguments
+def parse_args():
+    parser = argparse.ArgumentParser(description='Awesome Crawler Backend API')
+    parser.add_argument('--local-file', type=str, help='Use local file instead of S3 (overrides env vars)')
+    return parser.parse_args()
+
+# Initialize configuration
+args = parse_args()
+
+# Configure data source via command line args or environment variables
+if args.local_file:
+    DATA_SOURCE = "local"
+    LOCAL_FILE_PATH = args.local_file
+    S3_BUCKET = None
+    S3_KEY = None
+else:
+    DATA_SOURCE = "s3"
+    S3_BUCKET = os.getenv("S3_BUCKET", "awesome-crawler.allocsoc.net")
+    S3_KEY = os.getenv("S3_KEY", "data.json")
+    LOCAL_FILE_PATH = None
+
+data_service = DataService(
+    data_source=DATA_SOURCE,
+    bucket_name=S3_BUCKET,
+    s3_key=S3_KEY,
+    local_file_path=LOCAL_FILE_PATH
+)
 
 
 @asynccontextmanager
@@ -30,14 +56,15 @@ async def lifespan(app: FastAPI):
     """Application lifespan events"""
     # Startup
     logger.info("Starting awesome-crawler backend...")
-    
-    # Load initial data from S3
-    success = data_service.load_data_from_s3()
+
+    # Load initial data from configured source
+    logger.info(f"Loading data from {DATA_SOURCE.upper()} source")
+    success = data_service.load_data()
     if not success:
-        logger.warning("Failed to load initial data from S3")
-    
+        logger.warning(f"Failed to load initial data from {DATA_SOURCE.upper()}")
+
     yield
-    
+
     # Shutdown
     logger.info("Shutting down awesome-crawler backend...")
 
@@ -80,10 +107,10 @@ async def get_timeline(
     """Get paginated timeline (grouped by days)"""
     if not data_service.is_data_loaded():
         raise HTTPException(status_code=503, detail="Data not loaded")
-    
+
     timeline, total_pages = data_service.get_timeline_page(page, size)
     total_days = len(data_service.timeline)
-    
+
     return TimelineResponse(
         timeline=timeline,
         page=page,
@@ -101,10 +128,10 @@ async def get_items(
     """Get paginated items"""
     if not data_service.is_data_loaded():
         raise HTTPException(status_code=503, detail="Data not loaded")
-    
+
     items, total_pages = data_service.get_items_page(page, size)
     total_items = len(data_service.items)
-    
+
     return ItemsResponse(
         items=items,
         page=page,
@@ -123,13 +150,13 @@ async def search_items(
     """Search items with fuzzy matching"""
     if not data_service.is_data_loaded():
         raise HTTPException(status_code=503, detail="Data not loaded")
-    
+
     if not q or not q.strip():
         raise HTTPException(status_code=400, detail="Search query is required")
-    
+
     items, total_pages = data_service.search_items(q, page, size)
     total_matches = data_service.count_search_results(q)
-    
+
     return ItemsResponse(
         items=items,
         page=page,
@@ -144,9 +171,9 @@ async def feeling_lucky():
     """Get a random list"""
     if not data_service.is_data_loaded():
         raise HTTPException(status_code=503, detail="Data not loaded")
-    
+
     random_data = data_service.get_random_list()
-    
+
     # Return in same format as timeline for consistency
     return {
         "timeline": [random_data],
@@ -159,17 +186,19 @@ async def feeling_lucky():
 
 @app.post("/api/v1/reload")
 async def reload_data():
-    """Reload data from S3"""
-    logger.info("Reloading data from S3...")
-    
-    success = data_service.load_data_from_s3()
+    """Reload data from configured source"""
+    source_name = DATA_SOURCE.upper()
+    logger.info(f"Reloading data from {source_name}...")
+
+    success = data_service.load_data()
     if not success:
-        raise HTTPException(status_code=500, detail="Failed to reload data from S3")
-    
+        raise HTTPException(status_code=500, detail=f"Failed to reload data from {source_name}")
+
     stats = data_service.get_stats()
     return {
         "status": "success",
-        "message": "Data reloaded successfully",
+        "message": f"Data reloaded successfully from {source_name}",
+        "data_source": DATA_SOURCE,
         "total_items": stats["total_items"],
         "total_lists": stats["total_lists"],
         "last_updated": stats["last_updated"]
