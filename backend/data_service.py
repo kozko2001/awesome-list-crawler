@@ -10,6 +10,12 @@ import boto3
 import tantivy
 from botocore.exceptions import ClientError
 
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
+
 from models import JSONData, AppItem, AppDayData
 
 logger = logging.getLogger(__name__)
@@ -64,6 +70,7 @@ class DataService:
             
             data_dict = json.loads(content)
             self.raw_data = JSONData(**data_dict)
+            logger.info(f"Data from S3 successfully loaded into memory - {len(data_dict.get('lists', []))} lists parsed")
             
             # Convert to internal format
             self._process_data()
@@ -90,6 +97,7 @@ class DataService:
             
             data_dict = json.loads(content)
             self.raw_data = JSONData(**data_dict)
+            logger.info(f"Data from local file successfully loaded into memory - {len(data_dict.get('lists', []))} lists parsed")
             
             # Convert to internal format
             self._process_data()
@@ -167,6 +175,8 @@ class DataService:
         if not self.items:
             return
         
+        logger.info(f"Starting to build search index for {len(self.items)} items...")
+        
         try:
             # Create schema with fields for searching
             schema_builder = tantivy.SchemaBuilder()
@@ -196,7 +206,13 @@ class DataService:
             self.search_index.reload()
             self.searcher = self.search_index.searcher()
             
-            logger.info(f"Built search index with {len(self.items)} items")
+            logger.info(f"Search index build completed successfully - indexed {len(self.items)} items")
+            
+            # Log memory usage after index building
+            if PSUTIL_AVAILABLE:
+                process = psutil.Process()
+                memory_info = process.memory_info()
+                logger.info(f"Memory usage after index build: RSS={memory_info.rss / 1024 / 1024:.1f}MB, VMS={memory_info.vms / 1024 / 1024:.1f}MB")
             
         except Exception as e:
             logger.error(f"Error building search index: {e}")

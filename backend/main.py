@@ -1,9 +1,13 @@
 import argparse
 import logging
 import os
+import signal
+import sys
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Optional
+
+import psutil
 
 import requests
 from fastapi import FastAPI, HTTPException, Query
@@ -21,6 +25,35 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+
+# Signal handlers for graceful shutdown and OOM detection
+def signal_handler(signum, frame):
+    """Handle various signals that may indicate process termination"""
+    signal_names = {
+        signal.SIGTERM: "SIGTERM (graceful termination)",
+        signal.SIGINT: "SIGINT (interrupt)",
+        signal.SIGQUIT: "SIGQUIT (quit)",
+        signal.SIGUSR1: "SIGUSR1 (user signal 1)",
+        signal.SIGUSR2: "SIGUSR2 (user signal 2)",
+    }
+
+    signal_name = signal_names.get(signum, f"Signal {signum}")
+    logger.warning(f"Received {signal_name} - Application may be shutting down due to system constraints (possible OOM or external termination)")
+
+    # For SIGTERM and SIGINT, exit gracefully
+    if signum in [signal.SIGTERM, signal.SIGINT]:
+        logger.info("Initiating graceful shutdown...")
+        sys.exit(0)
+
+
+# Register signal handlers
+signal.signal(signal.SIGTERM, signal_handler)
+signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGQUIT, signal_handler)
+# Note: SIGKILL cannot be caught, but we can catch other signals that might indicate resource issues
+signal.signal(signal.SIGUSR1, signal_handler)
+signal.signal(signal.SIGUSR2, signal_handler)
 
 # Parse command line arguments
 def parse_args():
@@ -62,11 +95,18 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting awesome-crawler backend...")
 
+    process = psutil.Process()
+    memory_info = process.memory_info()
+    logger.info(f"Initial memory usage: RSS={memory_info.rss / 1024 / 1024:.1f}MB, VMS={memory_info.vms / 1024 / 1024:.1f}MB")
+
     # Load initial data from configured source
     logger.info(f"Loading data from {DATA_SOURCE.upper()} source")
     success = data_service.load_data()
     if not success:
         logger.warning(f"Failed to load initial data from {DATA_SOURCE.upper()}")
+
+    memory_info = process.memory_info()
+    logger.info(f"Memory usage after data loading: RSS={memory_info.rss / 1024 / 1024:.1f}MB, VMS={memory_info.vms / 1024 / 1024:.1f}MB")
 
     yield
 
