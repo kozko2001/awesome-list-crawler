@@ -36,5 +36,5 @@ USER appuser
 COPY . .
 
 # Run the executable
-ENTRYPOINT ["python", "-m", "awesome_crawler"]
+ENTRYPOINT ["python", "-m", "awesome_crawler", "--all"]
 
