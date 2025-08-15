@@ -224,7 +224,7 @@ jobs:
             echo "No changes to commit"
           else
             git commit -m "Update awesome-crawler image to ${{ github.sha }}"
-            git pcsh
+            git push
           fi
 
   update-web-manifests:
