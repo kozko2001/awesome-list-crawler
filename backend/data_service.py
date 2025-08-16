@@ -41,6 +41,8 @@ class DataService:
         self.raw_data: Optional[JSONData] = None
         self.items: List[AppItem] = []
         self.timeline: List[AppDayData] = []
+        self.sources: List[SourceInfo] = []  # Pre-computed sources ordered by date
+        self.sources_by_name: dict[str, tuple[SourceDetails, List[AppItem]]] = {}  # Fast source lookup
         self.last_updated: Optional[datetime] = None
         # Tantivy search index
         self.search_index: Optional[tantivy.Index] = None
@@ -146,6 +148,7 @@ class DataService:
         
         self.items = items
         self._build_timeline()
+        self._build_sources()
         self._build_search_index()
     
     def _build_timeline(self):
@@ -169,6 +172,59 @@ class DataService:
         
         # Sort timeline by date descending (most recent first)
         self.timeline = sorted(grouped_items, key=lambda x: x.date, reverse=True)
+    
+    def _build_sources(self):
+        """Build pre-computed sources structure ordered by date"""
+        if not self.raw_data or not self.raw_data.lists:
+            self.sources = []
+            return
+        
+        # Group items by list name for efficient lookup
+        items_by_list = {}
+        for item in self.items:
+            if item.list_name not in items_by_list:
+                items_by_list[item.list_name] = []
+            items_by_list[item.list_name].append(item)
+        
+        # Create source info for each list
+        sources = []
+        for list_data in self.raw_data.lists:
+            list_items = items_by_list.get(list_data.name, [])
+            
+            if list_items:
+                # Find the most recent update time for this list
+                latest_time = max(item.time for item in list_items)
+                
+                source_info = SourceInfo(
+                    name=list_data.name,
+                    description=list_data.description,
+                    source=list_data.source,
+                    item_count=len(list_items),
+                    last_updated=latest_time
+                )
+                sources.append(source_info)
+        
+        # Sort by last_updated descending (most recent first) and store
+        self.sources = sorted(sources, key=lambda x: x.last_updated, reverse=True)
+        
+        # Build fast lookup dictionary for source items
+        self.sources_by_name = {}
+        for list_data in self.raw_data.lists:
+            list_items = items_by_list.get(list_data.name, [])
+            
+            if list_items:
+                # Sort items by time descending (most recent first)
+                sorted_items = sorted(list_items, key=lambda x: x.time, reverse=True)
+                
+                # Create source details
+                source_details = SourceDetails(
+                    name=list_data.name,
+                    description=list_data.description,
+                    source=list_data.source,
+                    item_count=len(sorted_items)
+                )
+                
+                self.sources_by_name[list_data.name] = (source_details, sorted_items)
     
     def _build_search_index(self):
         """Build Tantivy search index for fast full-text search"""
@@ -373,75 +429,32 @@ class DataService:
         }
     
     def get_sources_page(self, page: int = 1, size: int = 20) -> tuple[List[SourceInfo], int]:
-        """Get paginated sources with their statistics"""
-        if not self.raw_data or not self.raw_data.lists:
+        """Get paginated sources with their statistics (using pre-computed data)"""
+        if not self.sources:
             return [], 0
         
-        # Create source info for each list
-        sources = []
-        for list_data in self.raw_data.lists:
-            # Get all items from this list
-            list_items = [item for item in self.items if item.list_name == list_data.name]
-            
-            if list_items:
-                # Find the most recent update time for this list
-                latest_time = max(item.time for item in list_items)
-                
-                source_info = SourceInfo(
-                    name=list_data.name,
-                    description=list_data.description,
-                    source=list_data.source,
-                    item_count=len(list_items),
-                    last_updated=latest_time
-                )
-                sources.append(source_info)
-        
-        # Sort by last_updated descending (most recent first)
-        sources.sort(key=lambda x: x.last_updated, reverse=True)
-        
-        # Paginate results
+        # Paginate the pre-computed and sorted sources
         start_idx = (page - 1) * size
         end_idx = start_idx + size
         
-        paginated_sources = sources[start_idx:end_idx]
-        total_pages = (len(sources) + size - 1) // size
+        paginated_sources = self.sources[start_idx:end_idx]
+        total_pages = (len(self.sources) + size - 1) // size
         
         return paginated_sources, total_pages
     
     def get_source_items_page(self, source_name: str, page: int = 1, size: int = 20) -> tuple[Optional[SourceDetails], List[AppItem], int]:
-        """Get paginated items for a specific source"""
-        if not self.raw_data or not self.raw_data.lists:
+        """Get paginated items for a specific source (using pre-computed data)"""
+        # Fast lookup from pre-computed dictionary
+        if source_name not in self.sources_by_name:
             return None, [], 0
         
-        # Find the source list
-        source_list = None
-        for list_data in self.raw_data.lists:
-            if list_data.name == source_name:
-                source_list = list_data
-                break
+        source_details, sorted_items = self.sources_by_name[source_name]
         
-        if not source_list:
-            return None, [], 0
-        
-        # Get all items from this source
-        source_items = [item for item in self.items if item.list_name == source_name]
-        
-        # Sort by time descending (most recent first)
-        source_items.sort(key=lambda x: x.time, reverse=True)
-        
-        # Create source details
-        source_details = SourceDetails(
-            name=source_list.name,
-            description=source_list.description,
-            source=source_list.source,
-            item_count=len(source_items)
-        )
-        
-        # Paginate results
+        # Paginate the pre-sorted items
         start_idx = (page - 1) * size
         end_idx = start_idx + size
         
-        paginated_items = source_items[start_idx:end_idx]
-        total_pages = (len(source_items) + size - 1) // size
+        paginated_items = sorted_items[start_idx:end_idx]
+        total_pages = (len(sorted_items) + size - 1) // size
         
         return source_details, paginated_items, total_pages
