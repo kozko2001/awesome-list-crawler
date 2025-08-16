@@ -13,7 +13,7 @@ spec:
         spec:
           containers:
           - name: awesome-crawler
-            image: harbor.allocsoc.net/awesome-crawler/awesome-crawler:e410beef781fddb3a8eaf1f9399082f4b64a7f26
+            image: harbor.allocsoc.net/awesome-crawler/awesome-crawler:9e71d854e23053f9f9e65fbbf93befcb6af3bcfe
             env:
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
