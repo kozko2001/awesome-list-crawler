@@ -56,5 +56,3 @@ ENV HOSTNAME=0.0.0.0
 
 # Run the application
 CMD ["node", "server.js"]
-
-
