@@ -42,6 +42,10 @@ export const api = {
   sources: (page: number = 1, size: number = 20) =>
     fetchApi<SourcesResponse>(`/api/v1/sources?page=${page}&size=${size}`),
 
+  // Search sources
+  searchSources: (query: string, page: number = 1, size: number = 20, sort: string = 'date') =>
+    fetchApi<SourcesResponse>(`/api/v1/sources/search?q=${encodeURIComponent(query)}&page=${page}&size=${size}&sort=${sort}`),
+
   // Source items by source name
   sourceItems: (sourceName: string, page: number = 1, size: number = 20) =>
     fetchApi<SourceItemsResponse>(`/api/v1/sources/${encodeURIComponent(sourceName)}/items?page=${page}&size=${size}&sort=time`),

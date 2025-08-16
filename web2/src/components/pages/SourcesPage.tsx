@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useInfiniteSources } from '@/hooks/api';
+import { useInfiniteSources, useInfiniteSourcesSearch } from '@/hooks/api';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Navigation } from '@/components/Navigation';
 import { Loading } from '@/components/Loading';
@@ -61,7 +61,16 @@ function SourceItem({ source }: SourceItemProps) {
 
 export function SourcesPage() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('date');
   const debouncedQuery = useDebounce(searchQuery, 300);
+  
+  // Use search hook when there's a query, otherwise use regular sources hook
+  const sourcesQuery = useInfiniteSources(20);
+  const searchQuery_ = useInfiniteSourcesSearch(debouncedQuery.trim(), 20, sortBy);
+  
+  // Choose which query to use based on whether we have a search query
+  const hasQuery = debouncedQuery.trim().length > 0;
+  const activeQuery = hasQuery ? searchQuery_ : sourcesQuery;
   
   const {
     data,
@@ -70,21 +79,11 @@ export function SourcesPage() {
     hasNextPage,
     isFetchingNextPage,
     isLoading,
-  } = useInfiniteSources(20);
+  } = activeQuery;
 
   const allPages = data?.pages ?? [];
-  const allSources = allPages.flatMap(page => page.sources);
-  
-  // Filter sources based on search query
-  const filteredSources = debouncedQuery.trim() 
-    ? allSources.filter(source => 
-        source.name.toLowerCase().includes(debouncedQuery.toLowerCase()) ||
-        source.description.toLowerCase().includes(debouncedQuery.toLowerCase())
-      )
-    : allSources;
-    
-  const hasSources = filteredSources.length > 0;
-  const hasQuery = debouncedQuery.trim().length > 0;
+  const sources = allPages.flatMap(page => page.sources);
+  const hasSources = sources.length > 0;
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
@@ -131,12 +130,43 @@ export function SourcesPage() {
             )}
           </div>
           
+          {/* Sort Options */}
+          {hasQuery && hasSources && (
+            <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+              <span className="text-sm text-terminal-gray font-mono">Sort by:</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSortBy('date')}
+                  className={`px-3 py-2 text-sm font-mono border transition-colors duration-200 min-h-[44px] flex-1 sm:flex-none ${
+                    sortBy === 'date'
+                      ? 'border-terminal-green text-terminal-green bg-terminal-green/10'
+                      : 'border-terminal-border text-terminal-gray hover:border-terminal-green hover:text-terminal-green'
+                  }`}
+                >
+                  Last Update
+                </button>
+                <button
+                  onClick={() => setSortBy('relevance')}
+                  className={`px-3 py-2 text-sm font-mono border transition-colors duration-200 min-h-[44px] flex-1 sm:flex-none ${
+                    sortBy === 'relevance'
+                      ? 'border-terminal-green text-terminal-green bg-terminal-green/10'
+                      : 'border-terminal-border text-terminal-gray hover:border-terminal-green hover:text-terminal-green'
+                  }`}
+                >
+                  Best Match
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Results info */}
           {hasQuery && (
-            <p className="text-sm text-terminal-gray font-mono mb-2">
-              {filteredSources.length > 0 
-                ? <>Found {filteredSources.length} awesome lists matching &ldquo;{debouncedQuery}&rdquo;</>
-                : <>No awesome lists found matching &ldquo;{debouncedQuery}&rdquo;</>
+            <p className="mt-2 text-sm text-terminal-gray font-mono">
+              {isLoading 
+                ? <>Searching for &ldquo;{debouncedQuery}&rdquo;...</>
+                : data?.pages[0]?.total 
+                  ? <>Found {data.pages[0].total} awesome lists for &ldquo;{debouncedQuery}&rdquo; (sorted by {sortBy === 'date' ? 'last update' : 'best match'})</>
+                  : <>No awesome lists found for &ldquo;{debouncedQuery}&rdquo;</>
               }
             </p>
           )}
@@ -166,28 +196,17 @@ export function SourcesPage() {
         )}
 
         {!isLoading && hasSources && (
-          <>
-            {/* When searching, disable infinite scroll and show filtered results */}
-            {hasQuery ? (
-              <div className="space-y-4">
-                {filteredSources.map((source, index) => (
-                  <SourceItem key={`${source.source}-${index}`} source={source} />
-                ))}
-              </div>
-            ) : (
-              <InfiniteScroll
-                hasNextPage={hasNextPage}
-                isFetchingNextPage={isFetchingNextPage}
-                fetchNextPage={fetchNextPage}
-              >
-                <div className="space-y-4">
-                  {filteredSources.map((source, index) => (
-                    <SourceItem key={`${source.source}-${index}`} source={source} />
-                  ))}
-                </div>
-              </InfiniteScroll>
-            )}
-          </>
+          <InfiniteScroll
+            hasNextPage={hasNextPage}
+            isFetchingNextPage={isFetchingNextPage}
+            fetchNextPage={fetchNextPage}
+          >
+            <div className="space-y-4">
+              {sources.map((source, index) => (
+                <SourceItem key={`${source.source}-${index}`} source={source} />
+              ))}
+            </div>
+          </InfiniteScroll>
         )}
 
         {!isLoading && !hasSources && !error && (
