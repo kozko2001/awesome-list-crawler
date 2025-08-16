@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 
@@ -16,6 +16,13 @@ export const metadata: Metadata = {
   }
 };
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -23,7 +30,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="bg-terminal-bg text-terminal-text font-mono antialiased">
+      <body className="bg-terminal-bg text-terminal-text font-mono antialiased touch-manipulation">
         <QueryProvider>
           {children}
         </QueryProvider>

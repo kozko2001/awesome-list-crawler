@@ -24,8 +24,9 @@ describe('RepositoryItem', () => {
     // Check if description is rendered
     expect(screen.getByText(mockItem.description)).toBeInTheDocument();
     
-    // Check if list name is shown
-    expect(screen.getByText(/from awesome-javascript/i)).toBeInTheDocument();
+    // Check if list name is shown (with new responsive layout)
+    expect(screen.getByText('from')).toBeInTheDocument();
+    expect(screen.getByText('awesome-javascript')).toBeInTheDocument();
     
     // Check if date is formatted and shown
     expect(screen.getByText('1/15/2024')).toBeInTheDocument();

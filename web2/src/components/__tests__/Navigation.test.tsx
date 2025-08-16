@@ -25,9 +25,14 @@ describe('Navigation', () => {
   it('shows the logo with terminal styling', () => {
     render(<Navigation />);
     
-    const logo = screen.getByText(/awesome-crawler/);
-    expect(logo).toBeInTheDocument();
-    expect(logo).toHaveClass('glow-text');
+    // Check for desktop version of the logo
+    const desktopLogo = screen.getByText('$ awesome-crawler');
+    expect(desktopLogo).toBeInTheDocument();
+    expect(desktopLogo.closest('h1')).toHaveClass('glow-text');
+    
+    // Check for mobile version of the logo  
+    const mobileLogo = screen.getByText('$ awesome');
+    expect(mobileLogo).toBeInTheDocument();
   });
 
   it('highlights the active route', () => {

@@ -9,7 +9,7 @@ export const useHealth = () =>
     refetchInterval: 30000, // Refetch every 30 seconds
   });
 
-// Timeline with infinite scroll
+// Timeline with infinite scroll (1 hour cache)
 export const useInfiniteTimeline = (size: number = 10) =>
   useInfiniteQuery({
     queryKey: ['timeline', size],
@@ -17,6 +17,8 @@ export const useInfiniteTimeline = (size: number = 10) =>
     getNextPageParam: (lastPage) => 
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
+    staleTime: 1000 * 60 * 60, // 1 hour
+    gcTime: 1000 * 60 * 60, // 1 hour (formerly cacheTime)
   });
 
 // Items with infinite scroll
@@ -48,11 +50,13 @@ export const useLucky = () =>
     enabled: false, // Only fetch when explicitly triggered
   });
 
-// Regular timeline query (for specific pages)
+// Regular timeline query (for specific pages, 1 hour cache)
 export const useTimeline = (page: number = 1, size: number = 10) =>
   useQuery({
     queryKey: ['timeline', page, size],
     queryFn: () => api.timeline(page, size),
+    staleTime: 1000 * 60 * 60, // 1 hour
+    gcTime: 1000 * 60 * 60, // 1 hour (formerly cacheTime)
   });
 
 // Regular items query (for specific pages)
