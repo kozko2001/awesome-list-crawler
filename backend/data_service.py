@@ -44,9 +44,12 @@ class DataService:
         self.sources: List[SourceInfo] = []  # Pre-computed sources ordered by date
         self.sources_by_name: dict[str, tuple[SourceDetails, List[AppItem]]] = {}  # Fast source lookup
         self.last_updated: Optional[datetime] = None
-        # Tantivy search index
+        # Tantivy search index for items
         self.search_index: Optional[tantivy.Index] = None
         self.searcher: Optional[tantivy.Searcher] = None
+        # Tantivy search index for sources
+        self.sources_search_index: Optional[tantivy.Index] = None
+        self.sources_searcher: Optional[tantivy.Searcher] = None
         
     def load_data(self) -> bool:
         """Load data from configured source (S3 or local file)"""
@@ -150,6 +153,7 @@ class DataService:
         self._build_timeline()
         self._build_sources()
         self._build_search_index()
+        self._build_sources_search_index()
     
     def _build_timeline(self):
         """Group items by date and build timeline"""
@@ -274,6 +278,47 @@ class DataService:
             logger.error(f"Error building search index: {e}")
             self.search_index = None
             self.searcher = None
+    
+    def _build_sources_search_index(self):
+        """Build Tantivy search index for sources"""
+        if not self.sources:
+            return
+        
+        logger.info(f"Starting to build sources search index for {len(self.sources)} sources...")
+        
+        try:
+            # Create schema with fields for searching sources
+            schema_builder = tantivy.SchemaBuilder()
+            schema_builder.add_text_field("name", stored=True)
+            schema_builder.add_text_field("description", stored=True)
+            schema_builder.add_text_field("source", stored=True)
+            schema_builder.add_integer_field("source_id", stored=True, indexed=True)
+            schema = schema_builder.build()
+            
+            # Create index in memory
+            self.sources_search_index = tantivy.Index(schema, path=None)
+            
+            # Index all sources
+            writer = self.sources_search_index.writer()
+            for i, source in enumerate(self.sources):
+                writer.add_document(tantivy.Document(
+                    name=source.name or "",
+                    description=source.description or "",
+                    source=source.source or "",
+                    source_id=i
+                ))
+            writer.commit()
+            
+            # Create searcher
+            self.sources_search_index.reload()
+            self.sources_searcher = self.sources_search_index.searcher()
+            
+            logger.info(f"Sources search index build completed successfully - indexed {len(self.sources)} sources")
+            
+        except Exception as e:
+            logger.error(f"Error building sources search index: {e}")
+            self.sources_search_index = None
+            self.sources_searcher = None
     
     def get_timeline_page(self, page: int = 1, size: int = 10) -> tuple[List[AppDayData], int]:
         """Get paginated timeline (days)"""
@@ -441,6 +486,88 @@ class DataService:
         total_pages = (len(self.sources) + size - 1) // size
         
         return paginated_sources, total_pages
+    
+    def search_sources(self, query: str, page: int = 1, size: int = 20, sort: str = "date") -> tuple[List[SourceInfo], int]:
+        """Search sources using Tantivy full-text search"""
+        if not query or not query.strip():
+            return self.get_sources_page(page, size)
+        
+        if not self.sources_searcher or not self.sources_search_index:
+            logger.warning("Sources search index not available, falling back to pagination")
+            return self.get_sources_page(page, size)
+        
+        try:
+            query = query.strip()
+            
+            # Parse the query - search across name, description, and source fields
+            parsed_query = self.sources_search_index.parse_query(query, ["name", "description", "source"])
+            
+            # Search with a reasonable limit
+            max_results = max(1000, (page * size))
+            top_docs = self.sources_searcher.search(parsed_query, max_results)
+            
+            # Extract sources using the stored source_id
+            matched_sources = []
+            for score, doc_address in top_docs.hits:
+                doc = self.sources_searcher.doc(doc_address)
+                source_id = doc["source_id"][0]
+                if 0 <= source_id < len(self.sources):
+                    if sort == "relevance":
+                        # Store score with source for relevance sorting
+                        source = self.sources[source_id]
+                        source._search_score = score  # Add temporary score attribute
+                        matched_sources.append(source)
+                    else:
+                        matched_sources.append(self.sources[source_id])
+            
+            # Sort results based on sort parameter
+            if sort == "relevance":
+                # Sort by search score (highest first) - already in relevance order from Tantivy
+                matched_sources.sort(key=lambda x: getattr(x, '_search_score', 0), reverse=True)
+            else:  # sort == "date"
+                # Sort by date (most recent first)
+                matched_sources.sort(key=lambda x: x.last_updated, reverse=True)
+            
+            # Clean up temporary score attributes
+            if sort == "relevance":
+                for source in matched_sources:
+                    if hasattr(source, '_search_score'):
+                        delattr(source, '_search_score')
+            
+            # Paginate results
+            total_matches = len(matched_sources)
+            start_idx = (page - 1) * size
+            end_idx = start_idx + size
+            
+            paginated_sources = matched_sources[start_idx:end_idx]
+            total_pages = (total_matches + size - 1) // size
+            
+            return paginated_sources, total_pages
+            
+        except Exception as e:
+            logger.error(f"Sources search error: {e}")
+            # Fallback to regular pagination
+            return self.get_sources_page(page, size)
+    
+    def count_sources_search_results(self, query: str) -> int:
+        """Count total sources search results without pagination"""
+        if not query or not query.strip():
+            return len(self.sources)
+        
+        if not self.sources_searcher or not self.sources_search_index:
+            return len(self.sources)
+        
+        try:
+            query = query.strip()
+            parsed_query = self.sources_search_index.parse_query(query, ["name", "description", "source"])
+            
+            # Search with high limit to get accurate count
+            top_docs = self.sources_searcher.search(parsed_query, 1000)
+            return len(top_docs.hits)
+            
+        except Exception as e:
+            logger.error(f"Sources search count error: {e}")
+            return len(self.sources)
     
     def get_source_items_page(self, source_name: str, page: int = 1, size: int = 20) -> tuple[Optional[SourceDetails], List[AppItem], int]:
         """Get paginated items for a specific source (using pre-computed data)"""

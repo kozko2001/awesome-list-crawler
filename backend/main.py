@@ -251,6 +251,32 @@ async def get_sources(
     )
 
 
+@app.get("/api/v1/sources/search", response_model=SourcesResponse)
+async def search_sources(
+    q: str = Query(..., description="Search query"),
+    page: int = Query(1, ge=1, description="Page number"),
+    size: int = Query(20, ge=1, le=100, description="Items per page"),
+    sort: str = Query("date", pattern="^(relevance|date)$", description="Sort by relevance or date")
+):
+    """Search sources with fuzzy matching"""
+    if not data_service.is_data_loaded():
+        raise HTTPException(status_code=503, detail="Data not loaded")
+
+    if not q or not q.strip():
+        raise HTTPException(status_code=400, detail="Search query is required")
+
+    sources, total_pages = data_service.search_sources(q, page, size, sort)
+    total_matches = data_service.count_sources_search_results(q)
+
+    return SourcesResponse(
+        sources=sources,
+        page=page,
+        size=size,
+        total=total_matches,
+        total_pages=total_pages
+    )
+
+
 @app.get("/api/v1/sources/{source_name}/items", response_model=SourceItemsResponse)
 async def get_source_items(
     source_name: str,
