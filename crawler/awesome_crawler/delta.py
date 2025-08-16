@@ -9,16 +9,25 @@ logger = logging.getLogger(__name__)
 
 
 def get_last() -> str:
+    print("📥 Downloading data.json from S3...")
     logger.info("Fetching last data from S3")
     try:
+        print("🔗 Connecting to S3...")
         client = boto3.client("s3")
         logger.debug("Created S3 client successfully")
         
+        print("📂 Requesting data.json from awesome-crawler.allocsoc.net...")
         obj = client.get_object(Bucket="awesome-crawler.allocsoc.net", Key="data.json")
+        
+        print("⏬ Downloading file content...")
         data = obj["Body"].read()
+        
+        data_size_mb = len(data) / (1024 * 1024)
+        print(f"✅ Successfully downloaded {data_size_mb:.1f}MB from S3")
         logger.info(f"Successfully fetched {len(data)} bytes from S3")
         return data
     except Exception as e:
+        print(f"❌ Failed to download data.json: {e}")
         logger.error(f"Failed to fetch last data from S3: {e}")
         raise
 

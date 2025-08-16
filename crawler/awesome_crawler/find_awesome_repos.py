@@ -31,12 +31,12 @@ def from_github_topics():
 
 def find_repos():
     awesome_awesome = from_awesome_awesome()
-    # github_topics = from_github_topics()
+    github_topics = from_github_topics()
 
-    # duplicated_urls = set([r.source.strip().replace("#readme", "") for r in awesome_awesome]) & set([r.source.strip() for r in github_topics])
-    # github_topics = list(filter(lambda r: r.source not in duplicated_urls, github_topics))
+    duplicated_urls = set([r.source.strip().replace("#readme", "") for r in awesome_awesome]) & set([r.source.strip() for r in github_topics])
+    github_topics = list(filter(lambda r: r.source not in duplicated_urls, github_topics))
 
-    # repos = awesome_awesome + github_topics
-    repos = awesome_awesome[0:20]
+    repos = awesome_awesome + github_topics
+    # repos = awesome_awesome[0:20]
 
     return repos
