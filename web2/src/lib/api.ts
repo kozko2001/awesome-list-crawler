@@ -1,4 +1,4 @@
-import { TimelineResponse, ItemsResponse, HealthResponse, LuckyResponse, SourcesResponse } from '@/types/api';
+import { TimelineResponse, ItemsResponse, HealthResponse, LuckyResponse, SourcesResponse, SourceItemsResponse } from '@/types/api';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -41,6 +41,10 @@ export const api = {
   // Sources list
   sources: (page: number = 1, size: number = 20) =>
     fetchApi<SourcesResponse>(`/api/v1/sources?page=${page}&size=${size}`),
+
+  // Source items by source name
+  sourceItems: (sourceName: string, page: number = 1, size: number = 20) =>
+    fetchApi<SourceItemsResponse>(`/api/v1/sources/${encodeURIComponent(sourceName)}/items?page=${page}&size=${size}&sort=time`),
 };
 
 export { ApiError };

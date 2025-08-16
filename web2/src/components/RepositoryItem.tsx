@@ -1,5 +1,6 @@
 import { AppItem } from '@/types/api';
 import { ExternalLink, Clock, Tag } from 'lucide-react';
+import Link from 'next/link';
 
 interface RepositoryItemProps {
   item: AppItem;
@@ -32,14 +33,12 @@ export function RepositoryItem({ item }: RepositoryItemProps) {
             <div className="flex items-center space-x-1 min-h-[44px] sm:min-h-[32px]">
               <Tag size={12} className="flex-shrink-0" />
               <span>from </span>
-              <a
-                href={item.list_source}
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                href={`/sources/${encodeURIComponent(item.list_name)}`}
                 className="text-terminal-green hover:glow-text underline hover:no-underline transition-all duration-200 break-words"
               >
                 {item.list_name}
-              </a>
+              </Link>
             </div>
             <div className="flex items-center space-x-1 min-h-[44px] sm:min-h-[32px]">
               <Clock size={12} className="flex-shrink-0" />

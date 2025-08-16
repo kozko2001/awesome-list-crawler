@@ -58,3 +58,17 @@ export interface SourcesResponse {
   total: number;
   total_pages: number;
 }
+
+export interface SourceItemsResponse {
+  source: {
+    name: string;
+    description: string;
+    source: string;
+    item_count: number;
+  };
+  items: AppItem[];
+  page: number;
+  size: number;
+  total: number;
+  total_pages: number;
+}

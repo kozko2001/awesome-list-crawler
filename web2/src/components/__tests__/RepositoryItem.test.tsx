@@ -24,9 +24,11 @@ describe('RepositoryItem', () => {
     // Check if description is rendered
     expect(screen.getByText(mockItem.description)).toBeInTheDocument();
     
-    // Check if list name is shown (with new responsive layout)
+    // Check if list name is shown as internal link (with new responsive layout)
     expect(screen.getByText('from')).toBeInTheDocument();
-    expect(screen.getByText('awesome-javascript')).toBeInTheDocument();
+    const sourceLink = screen.getByRole('link', { name: 'awesome-javascript' });
+    expect(sourceLink).toBeInTheDocument();
+    expect(sourceLink).toHaveAttribute('href', '/sources/awesome-javascript');
     
     // Check if date is formatted and shown
     expect(screen.getByText('1/15/2024')).toBeInTheDocument();
@@ -39,10 +41,20 @@ describe('RepositoryItem', () => {
     expect(itemContainer).toHaveClass('border');
   });
 
-  it('opens link in new tab with security attributes', () => {
+  it('opens repository link in new tab with security attributes', () => {
     render(<RepositoryItem item={mockItem} />);
     
     const nameLink = screen.getByRole('link', { name: /awesome-repo/i });
     expect(nameLink).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(nameLink).toHaveAttribute('target', '_blank');
+  });
+
+  it('source link navigates internally', () => {
+    render(<RepositoryItem item={mockItem} />);
+    
+    const sourceLink = screen.getByRole('link', { name: 'awesome-javascript' });
+    expect(sourceLink).toHaveAttribute('href', '/sources/awesome-javascript');
+    expect(sourceLink).not.toHaveAttribute('target');
+    expect(sourceLink).not.toHaveAttribute('rel');
   });
 });

@@ -90,3 +90,26 @@ export const useSources = (page: number = 1, size: number = 20) =>
     queryKey: ['sources', page, size],
     queryFn: () => api.sources(page, size),
   });
+
+// Source items with infinite scroll (1 hour cache)
+export const useInfiniteSourceItems = (sourceName: string, size: number = 20) =>
+  useInfiniteQuery({
+    queryKey: ['sourceItems', sourceName, size],
+    queryFn: ({ pageParam = 1 }) => api.sourceItems(sourceName, pageParam, size),
+    getNextPageParam: (lastPage) => 
+      lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
+    initialPageParam: 1,
+    enabled: !!sourceName.trim(),
+    staleTime: 1000 * 60 * 60, // 1 hour
+    gcTime: 1000 * 60 * 60, // 1 hour (formerly cacheTime)
+  });
+
+// Source items query (for specific pages, 1 hour cache)
+export const useSourceItems = (sourceName: string, page: number = 1, size: number = 20) =>
+  useQuery({
+    queryKey: ['sourceItems', sourceName, page, size],
+    queryFn: () => api.sourceItems(sourceName, page, size),
+    enabled: !!sourceName.trim(),
+    staleTime: 1000 * 60 * 60, // 1 hour
+    gcTime: 1000 * 60 * 60, // 1 hour (formerly cacheTime)
+  });

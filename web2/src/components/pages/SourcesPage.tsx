@@ -6,6 +6,7 @@ import { Loading } from '@/components/Loading';
 import { InfiniteScroll } from '@/components/InfiniteScroll';
 import { ExternalLink, AlertCircle, Calendar, Hash } from 'lucide-react';
 import { SourceInfo } from '@/types/api';
+import Link from 'next/link';
 
 interface SourceItemProps {
   source: SourceInfo;
@@ -18,14 +19,20 @@ function SourceItem({ source }: SourceItemProps) {
     <div className="border border-terminal-border bg-terminal-bg p-4 hover:border-terminal-green transition-colors duration-200">
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center space-x-2 mb-2">
+          <div className="flex items-center justify-between mb-2">
+            <Link
+              href={`/sources/${encodeURIComponent(source.name)}`}
+              className="text-terminal-green hover:glow-text font-mono font-semibold break-words flex-1 min-w-0"
+            >
+              {source.name}
+            </Link>
             <a
               href={source.source}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-terminal-green hover:glow-text font-mono font-semibold flex items-center space-x-1 group"
+              className="text-terminal-green hover:glow-text ml-2 flex-shrink-0 group"
+              title="View on GitHub"
             >
-              <span>{source.name}</span>
               <ExternalLink size={12} className="group-hover:scale-110 transition-transform duration-200" />
             </a>
           </div>
