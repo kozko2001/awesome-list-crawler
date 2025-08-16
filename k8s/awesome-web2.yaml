@@ -47,7 +47,7 @@ spec:
     spec:
       containers:
       - name: web2
-        image: harbor.allocsoc.net/awesome-crawler/awesome-web2:4308ad975f4f1f7deff77a3ec279e4386fff78ce
+        image: harbor.allocsoc.net/awesome-crawler/awesome-web2:4872bc3ef7bd062044f95d578e22c45dcf5badc9
         ports:
         - containerPort: 3000
           name: http
