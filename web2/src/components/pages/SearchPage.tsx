@@ -11,6 +11,7 @@ import { Search, AlertCircle, X } from 'lucide-react';
 
 export function SearchPage() {
   const [query, setQuery] = useState('');
+  const [sortBy, setSortBy] = useState('date');
   const debouncedQuery = useDebounce(query, 300);
 
   const {
@@ -20,7 +21,7 @@ export function SearchPage() {
     hasNextPage,
     isFetchingNextPage,
     isLoading,
-  } = useInfiniteSearch(debouncedQuery.trim(), 20);
+  } = useInfiniteSearch(debouncedQuery.trim(), 20, sortBy);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setQuery(e.target.value);
@@ -70,12 +71,41 @@ export function SearchPage() {
             )}
           </div>
           
+          {/* Sort Options */}
+          {hasQuery && (
+            <div className="mt-3 flex items-center gap-4">
+              <span className="text-sm text-terminal-gray font-mono">Sort by:</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSortBy('date')}
+                  className={`px-3 py-1 text-sm font-mono border transition-colors duration-200 ${
+                    sortBy === 'date'
+                      ? 'border-terminal-green text-terminal-green bg-terminal-green/10'
+                      : 'border-terminal-border text-terminal-gray hover:border-terminal-green hover:text-terminal-green'
+                  }`}
+                >
+                  Last Update
+                </button>
+                <button
+                  onClick={() => setSortBy('relevance')}
+                  className={`px-3 py-1 text-sm font-mono border transition-colors duration-200 ${
+                    sortBy === 'relevance'
+                      ? 'border-terminal-green text-terminal-green bg-terminal-green/10'
+                      : 'border-terminal-border text-terminal-gray hover:border-terminal-green hover:text-terminal-green'
+                  }`}
+                >
+                  Best Match
+                </button>
+              </div>
+            </div>
+          )}
+
           {hasQuery && (
             <p className="mt-2 text-sm text-terminal-gray font-mono">
               {isLoading 
                 ? `Searching for "${debouncedQuery}"...`
                 : data?.pages[0]?.total 
-                  ? `Found ${data.pages[0].total} results for "${debouncedQuery}"`
+                  ? `Found ${data.pages[0].total} results for "${debouncedQuery}" (sorted by ${sortBy === 'date' ? 'last update' : 'best match'})`
                   : `No results for "${debouncedQuery}"`
               }
             </p>

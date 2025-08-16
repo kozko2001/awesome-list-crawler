@@ -190,7 +190,8 @@ async def get_items(
 async def search_items(
     q: str = Query(..., description="Search query"),
     page: int = Query(1, ge=1, description="Page number"),
-    size: int = Query(20, ge=1, le=100, description="Items per page")
+    size: int = Query(20, ge=1, le=100, description="Items per page"),
+    sort: str = Query("date", pattern="^(relevance|date)$", description="Sort by relevance or date")
 ):
     """Search items with fuzzy matching"""
     if not data_service.is_data_loaded():
@@ -199,7 +200,7 @@ async def search_items(
     if not q or not q.strip():
         raise HTTPException(status_code=400, detail="Search query is required")
 
-    items, total_pages = data_service.search_items(q, page, size)
+    items, total_pages = data_service.search_items(q, page, size, sort)
     total_matches = data_service.count_search_results(q)
 
     return ItemsResponse(

@@ -30,10 +30,10 @@ export const useInfiniteItems = (size: number = 20) =>
   });
 
 // Search with infinite scroll
-export const useInfiniteSearch = (query: string, size: number = 20) =>
+export const useInfiniteSearch = (query: string, size: number = 20, sort: string = 'date') =>
   useInfiniteQuery({
-    queryKey: ['search', query, size],
-    queryFn: ({ pageParam = 1 }) => api.search(query, pageParam, size),
+    queryKey: ['search', query, size, sort],
+    queryFn: ({ pageParam = 1 }) => api.search(query, pageParam, size, sort),
     getNextPageParam: (lastPage) => 
       lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
     initialPageParam: 1,
@@ -63,9 +63,9 @@ export const useItems = (page: number = 1, size: number = 20) =>
   });
 
 // Search query (for specific pages)
-export const useSearch = (query: string, page: number = 1, size: number = 20) =>
+export const useSearch = (query: string, page: number = 1, size: number = 20, sort: string = 'date') =>
   useQuery({
-    queryKey: ['search', query, page, size],
-    queryFn: () => api.search(query, page, size),
+    queryKey: ['search', query, page, size, sort],
+    queryFn: () => api.search(query, page, size, sort),
     enabled: !!query.trim(),
   });

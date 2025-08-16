@@ -242,7 +242,7 @@ class DataService:
         
         return paginated_items, total_pages
     
-    def search_items(self, query: str, page: int = 1, size: int = 20) -> tuple[List[AppItem], int]:
+    def search_items(self, query: str, page: int = 1, size: int = 20, sort: str = "date") -> tuple[List[AppItem], int]:
         """Search items using Tantivy full-text search"""
         if not query or not query.strip():
             return self.get_items_page(page, size)
@@ -267,10 +267,27 @@ class DataService:
                 doc = self.searcher.doc(doc_address)
                 item_id = doc["item_id"][0]
                 if 0 <= item_id < len(self.items):
-                    matched_items.append(self.items[item_id])
+                    if sort == "relevance":
+                        # Store score with item for relevance sorting
+                        item = self.items[item_id]
+                        item._search_score = score  # Add temporary score attribute
+                        matched_items.append(item)
+                    else:
+                        matched_items.append(self.items[item_id])
             
-            # Sort results by date (most recent first)
-            matched_items.sort(key=lambda x: x.time, reverse=True)
+            # Sort results based on sort parameter
+            if sort == "relevance":
+                # Sort by search score (highest first) - already in relevance order from Tantivy
+                matched_items.sort(key=lambda x: getattr(x, '_search_score', 0), reverse=True)
+            else:  # sort == "date"
+                # Sort by date (most recent first)
+                matched_items.sort(key=lambda x: x.time, reverse=True)
+            
+            # Clean up temporary score attributes
+            if sort == "relevance":
+                for item in matched_items:
+                    if hasattr(item, '_search_score'):
+                        delattr(item, '_search_score')
             
             # Paginate results
             total_matches = len(matched_items)

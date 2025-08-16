@@ -32,8 +32,8 @@ export const api = {
     fetchApi<ItemsResponse>(`/api/v1/items?page=${page}&size=${size}`),
 
   // Search items
-  search: (query: string, page: number = 1, size: number = 20) =>
-    fetchApi<ItemsResponse>(`/api/v1/search?q=${encodeURIComponent(query)}&page=${page}&size=${size}`),
+  search: (query: string, page: number = 1, size: number = 20, sort: string = 'date') =>
+    fetchApi<ItemsResponse>(`/api/v1/search?q=${encodeURIComponent(query)}&page=${page}&size=${size}&sort=${sort}`),
 
   // Random item (I'm feeling lucky)
   lucky: () => fetchApi<LuckyResponse>('/api/v1/lucky'),
