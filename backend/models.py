@@ -64,3 +64,19 @@ class HealthResponse(BaseModel):
     data_loaded: bool
     total_items: int
     last_updated: Optional[datetime] = None
+
+
+class SourceInfo(BaseModel):
+    name: str
+    description: str
+    source: str
+    item_count: int
+    last_updated: datetime
+
+
+class SourcesResponse(BaseModel):
+    sources: List[SourceInfo]
+    page: int
+    size: int
+    total: int
+    total_pages: int

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Search, Shuffle } from 'lucide-react';
+import { Home, Search, Shuffle, List } from 'lucide-react';
 
 export function Navigation() {
   const pathname = usePathname();
@@ -10,6 +10,7 @@ export function Navigation() {
   const navItems = [
     { href: '/', label: 'Timeline', icon: Home },
     { href: '/search', label: 'Search', icon: Search },
+    { href: '/sources', label: 'Sources', icon: List },
     { href: '/lucky', label: 'Lucky', icon: Shuffle },
   ];
 

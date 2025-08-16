@@ -16,7 +16,7 @@ try:
 except ImportError:
     PSUTIL_AVAILABLE = False
 
-from models import JSONData, AppItem, AppDayData
+from models import JSONData, AppItem, AppDayData, SourceInfo
 
 logger = logging.getLogger(__name__)
 
@@ -371,3 +371,39 @@ class DataService:
             "total_items": len(self.items),
             "last_updated": self.last_updated
         }
+    
+    def get_sources_page(self, page: int = 1, size: int = 20) -> tuple[List[SourceInfo], int]:
+        """Get paginated sources with their statistics"""
+        if not self.raw_data or not self.raw_data.lists:
+            return [], 0
+        
+        # Create source info for each list
+        sources = []
+        for list_data in self.raw_data.lists:
+            # Get all items from this list
+            list_items = [item for item in self.items if item.list_name == list_data.name]
+            
+            if list_items:
+                # Find the most recent update time for this list
+                latest_time = max(item.time for item in list_items)
+                
+                source_info = SourceInfo(
+                    name=list_data.name,
+                    description=list_data.description,
+                    source=list_data.source,
+                    item_count=len(list_items),
+                    last_updated=latest_time
+                )
+                sources.append(source_info)
+        
+        # Sort by last_updated descending (most recent first)
+        sources.sort(key=lambda x: x.last_updated, reverse=True)
+        
+        # Paginate results
+        start_idx = (page - 1) * size
+        end_idx = start_idx + size
+        
+        paginated_sources = sources[start_idx:end_idx]
+        total_pages = (len(sources) + size - 1) // size
+        
+        return paginated_sources, total_pages

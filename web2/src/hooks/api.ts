@@ -69,3 +69,20 @@ export const useSearch = (query: string, page: number = 1, size: number = 20, so
     queryFn: () => api.search(query, page, size, sort),
     enabled: !!query.trim(),
   });
+
+// Sources with infinite scroll
+export const useInfiniteSources = (size: number = 20) =>
+  useInfiniteQuery({
+    queryKey: ['sources', size],
+    queryFn: ({ pageParam = 1 }) => api.sources(pageParam, size),
+    getNextPageParam: (lastPage) => 
+      lastPage.page < lastPage.total_pages ? lastPage.page + 1 : undefined,
+    initialPageParam: 1,
+  });
+
+// Sources query (for specific pages)
+export const useSources = (page: number = 1, size: number = 20) =>
+  useQuery({
+    queryKey: ['sources', page, size],
+    queryFn: () => api.sources(page, size),
+  });

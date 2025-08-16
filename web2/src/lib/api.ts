@@ -1,4 +1,4 @@
-import { TimelineResponse, ItemsResponse, HealthResponse, LuckyResponse } from '@/types/api';
+import { TimelineResponse, ItemsResponse, HealthResponse, LuckyResponse, SourcesResponse } from '@/types/api';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -37,6 +37,10 @@ export const api = {
 
   // Random item (I'm feeling lucky)
   lucky: () => fetchApi<LuckyResponse>('/api/v1/lucky'),
+
+  // Sources list
+  sources: (page: number = 1, size: number = 20) =>
+    fetchApi<SourcesResponse>(`/api/v1/sources?page=${page}&size=${size}`),
 };
 
 export { ApiError };

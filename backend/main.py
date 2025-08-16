@@ -16,7 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from data_service import DataService
 from models import (
     TimelineResponse, ItemsResponse, AppDayData,
-    HealthResponse, PaginatedResponse
+    HealthResponse, PaginatedResponse, SourcesResponse
 )
 
 # Configure logging
@@ -228,6 +228,27 @@ async def feeling_lucky():
         "total": 1,
         "total_pages": 1
     }
+
+
+@app.get("/api/v1/sources", response_model=SourcesResponse)
+async def get_sources(
+    page: int = Query(1, ge=1, description="Page number"),
+    size: int = Query(20, ge=1, le=100, description="Items per page")
+):
+    """Get paginated sources list ordered by last update"""
+    if not data_service.is_data_loaded():
+        raise HTTPException(status_code=503, detail="Data not loaded")
+
+    sources, total_pages = data_service.get_sources_page(page, size)
+    total_sources = len(data_service.raw_data.lists) if data_service.raw_data else 0
+
+    return SourcesResponse(
+        sources=sources,
+        page=page,
+        size=size,
+        total=total_sources,
+        total_pages=total_pages
+    )
 
 
 @app.post("/api/v1/reload")

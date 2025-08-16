@@ -31,7 +31,15 @@ export function RepositoryItem({ item }: RepositoryItemProps) {
           <div className="flex flex-wrap items-center text-xs text-terminal-gray space-x-4">
             <div className="flex items-center space-x-1">
               <Tag size={10} />
-              <span>from {item.list_name}</span>
+              <span>from </span>
+              <a
+                href={item.list_source}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-terminal-green hover:glow-text underline hover:no-underline transition-all duration-200"
+              >
+                {item.list_name}
+              </a>
             </div>
             <div className="flex items-center space-x-1">
               <Clock size={10} />

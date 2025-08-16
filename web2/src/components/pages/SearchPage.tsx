@@ -72,7 +72,7 @@ export function SearchPage() {
           </div>
           
           {/* Sort Options */}
-          {hasQuery && (
+          {hasQuery && hasResults && (
             <div className="mt-3 flex items-center gap-4">
               <span className="text-sm text-terminal-gray font-mono">Sort by:</span>
               <div className="flex gap-2">

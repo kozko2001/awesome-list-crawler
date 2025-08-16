@@ -42,3 +42,19 @@ export interface LuckyResponse {
   total: number;
   total_pages: number;
 }
+
+export interface SourceInfo {
+  name: string;
+  description: string;
+  source: string;
+  item_count: number;
+  last_updated: string; // ISO date string
+}
+
+export interface SourcesResponse {
+  sources: SourceInfo[];
+  page: number;
+  size: number;
+  total: number;
+  total_pages: number;
+}
