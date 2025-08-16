@@ -80,3 +80,19 @@ class SourcesResponse(BaseModel):
     size: int
     total: int
     total_pages: int
+
+
+class SourceDetails(BaseModel):
+    name: str
+    description: str
+    source: str
+    item_count: int
+
+
+class SourceItemsResponse(BaseModel):
+    source: SourceDetails
+    items: List[AppItem]
+    page: int
+    size: int
+    total: int
+    total_pages: int

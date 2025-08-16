@@ -16,7 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from data_service import DataService
 from models import (
     TimelineResponse, ItemsResponse, AppDayData,
-    HealthResponse, PaginatedResponse, SourcesResponse
+    HealthResponse, PaginatedResponse, SourcesResponse, SourceItemsResponse
 )
 
 # Configure logging
@@ -247,6 +247,34 @@ async def get_sources(
         page=page,
         size=size,
         total=total_sources,
+        total_pages=total_pages
+    )
+
+
+@app.get("/api/v1/sources/{source_name}/items", response_model=SourceItemsResponse)
+async def get_source_items(
+    source_name: str,
+    page: int = Query(1, ge=1, description="Page number"),
+    size: int = Query(20, ge=1, le=100, description="Items per page"),
+    sort: str = Query("time", pattern="^(time)$", description="Sort by time")
+):
+    """Get paginated items for a specific source ordered by time"""
+    if not data_service.is_data_loaded():
+        raise HTTPException(status_code=503, detail="Data not loaded")
+    
+    source_details, items, total_pages = data_service.get_source_items_page(source_name, page, size)
+    
+    if not source_details:
+        raise HTTPException(status_code=404, detail=f"Source '{source_name}' not found")
+    
+    total_items = source_details.item_count
+    
+    return SourceItemsResponse(
+        source=source_details,
+        items=items,
+        page=page,
+        size=size,
+        total=total_items,
         total_pages=total_pages
     )
 
