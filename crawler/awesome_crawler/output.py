@@ -78,7 +78,7 @@ def notify_backend_reload():
         logger.error(f"Unexpected error notifying backend reload: {e}")
 
 
-def generate_json(awesomeItems: list[AwesomeItem], dest: Path = None):
+def generate_json(awesomeItems: list[AwesomeItem], dest: Path = None, old_data_str: str = None):
     logger.info(f"Generating JSON from {len(awesomeItems)} awesome items")
     
     try:
@@ -86,7 +86,7 @@ def generate_json(awesomeItems: list[AwesomeItem], dest: Path = None):
         logger.debug(f"Generated initial JSON content: {len(content)} characters")
 
         logger.info("Calculating delta with previous data")
-        added_new = delta(content)
+        added_new = delta(content, old_data_str)
         content = serialize(added_new)
         logger.info(f"Final content after delta: {len(content)} characters")
 
