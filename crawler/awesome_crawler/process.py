@@ -1,5 +1,6 @@
 import logging
 import os
+import signal
 from dataclasses import dataclass
 from datetime import datetime
 from multiprocessing import Pool
@@ -35,17 +36,34 @@ class CrawlerArgument:
     since_date: Optional[datetime] = None
 
 
+class TimeoutError(Exception):
+    pass
+
+def timeout_handler(signum, frame):
+    raise TimeoutError("Repository processing timed out")
+
 def crawl_repository(argument: CrawlerArgument):
     awesomeList = argument.list
+    
+    # Set up timeout (120 seconds = 2 minutes)
+    signal.signal(signal.SIGALRM, timeout_handler)
+    signal.alarm(120)
+    
     try:
         items = process_awesome_repo(
             awesomeList.source.split("#")[0], 
             limit=argument.limit,
             since_date=argument.since_date
         )
+        signal.alarm(0)  # Cancel the alarm
         logger.info(f"successfully processed repo {awesomeList}")
         return [AwesomeItem(item.item, awesomeList, item.time) for item in items]
+    except TimeoutError:
+        signal.alarm(0)  # Cancel the alarm
+        logger.error(f"Repository {awesomeList} timed out after 2 minutes, skipping")
+        return []
     except Exception:
+        signal.alarm(0)  # Cancel the alarm
         logger.exception(f"failed to process repo {awesomeList}")
         return []
 
@@ -106,5 +124,5 @@ def crawl_awesome(awesomeLists: list[AwesomeList], limit: Optional[int] = None, 
     
     with Pool(cpu_count) as p:
         return list(
-            tqdm.tqdm(p.imap(crawl_repository, arguments), total=len(awesomeLists))
+            tqdm.tqdm(p.imap_unordered(crawl_repository, arguments), total=len(awesomeLists))
         )
