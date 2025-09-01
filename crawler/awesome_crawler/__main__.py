@@ -90,6 +90,10 @@ def main(logs: bool, write_s3: bool, force_discovery: bool, probabilistic_sampli
     if single_repo:
         print(f"🎯 Processing single repository: {single_repo}")
         logging.info(f"Processing single repository: {single_repo}")
+        # Enable debug logging for single repo mode
+        if not logs:
+            logging.getLogger().setLevel(logging.DEBUG)
+            logging.info("🔧 Debug logging enabled for single repository mode")
         list_of_awesome_projects = [AwesomeList("single-repo", single_repo, "Single repository for testing")]
     elif force_discovery or should_run_discovery():
         print("🔍 Running repository discovery (Monday or forced)...")

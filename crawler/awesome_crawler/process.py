@@ -45,26 +45,40 @@ def timeout_handler(signum, frame):
 def crawl_repository(argument: CrawlerArgument):
     awesomeList = argument.list
     
-    # Set up timeout (120 seconds = 2 minutes)
+    logger.debug(f"🚀 Starting to process repository: {awesomeList.name}")
+    logger.debug(f"📍 Repository URL: {awesomeList.source}")
+    logger.debug(f"📝 Repository description: {awesomeList.description}")
+    logger.debug(f"⏰ Processing since date: {argument.since_date}")
+    logger.debug(f"🔢 Item limit: {argument.limit}")
+    
+    # Set up timeout (240 seconds = 4 minutes)
     signal.signal(signal.SIGALRM, timeout_handler)
-    signal.alarm(120)
+    signal.alarm(240)
     
     try:
+        repo_url = awesomeList.source.split("#")[0]
+        logger.debug(f"🔗 Cleaned repository URL: {repo_url}")
+        
         items = process_awesome_repo(
-            awesomeList.source.split("#")[0], 
+            repo_url, 
             limit=argument.limit,
             since_date=argument.since_date
         )
+        
         signal.alarm(0)  # Cancel the alarm
-        logger.info(f"successfully processed repo {awesomeList}")
-        return [AwesomeItem(item.item, awesomeList, item.time) for item in items]
+        items_list = [AwesomeItem(item.item, awesomeList, item.time) for item in items]
+        
+        logger.info(f"✅ Successfully processed repo {awesomeList.name} - found {len(items_list)} items")
+        logger.debug(f"📊 Items found: {[item.item.name for item in items_list[:10]]}{'...' if len(items_list) > 10 else ''}")
+        
+        return items_list
     except TimeoutError:
         signal.alarm(0)  # Cancel the alarm
-        logger.error(f"Repository {awesomeList} timed out after 2 minutes, skipping")
+        logger.error(f"⏱️ Repository {awesomeList.name} timed out after 4 minutes, skipping")
         return []
-    except Exception:
+    except Exception as e:
         signal.alarm(0)  # Cancel the alarm
-        logger.exception(f"failed to process repo {awesomeList}")
+        logger.exception(f"❌ Failed to process repo {awesomeList.name}: {str(e)}")
         return []
 
 

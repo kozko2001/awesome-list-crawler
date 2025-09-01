@@ -95,7 +95,19 @@ def get_first_date(items: list[AwesomeItemTime]) -> Iterable[AwesomeItemTime]:
 
 
 def process_awesome_repo(url: str, limit: int = None, since_date: Optional[datetime] = None) -> Iterable[AwesomeItemTime]:
+    logger.debug(f"🔄 Starting processing of repository: {url}")
+    logger.debug(f"📁 Creating temporary directory for cloning...")
+    
     with TemporaryDirectory() as temp:
         dest = Path(temp)
+        logger.debug(f"📂 Temporary directory created: {temp}")
+        
+        logger.debug(f"🔍 Extracting commits from repository...")
         x = list(extract_all_commits(url, dest, limit, since_date))
-        return get_first_date(x)
+        logger.debug(f"📈 Total items extracted from all commits: {len(x)}")
+        
+        logger.debug(f"🎯 Getting first occurrence dates for items...")
+        result = list(get_first_date(x))
+        logger.debug(f"✨ Final unique items after deduplication: {len(result)}")
+        
+        return result
